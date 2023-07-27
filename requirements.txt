@@ -1,0 +1,7 @@
+flask
+pymongo
+redis
+requests
+python-dotenv
+bcrypt
+sentry-sdk[flask]
