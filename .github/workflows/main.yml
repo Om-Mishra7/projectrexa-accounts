@@ -24,8 +24,8 @@ jobs:
         port: 22
         script: |
           cd account-pr
-          git pull origin main
-          git status
+          rm -rf projectrexa-accounts
+          git clone https://github.com/Om-Mishra7/projectrexa-accounts.git
           cd projectrexa-accounts
           pip install -r requirements.txt
           python3 run.py
