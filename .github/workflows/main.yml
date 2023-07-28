@@ -22,7 +22,7 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
-        run: |
+        script: |
           cd account-pr
           sudo apt update
           sudo apt install gunicorn -y
