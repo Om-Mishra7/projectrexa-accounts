@@ -5,7 +5,7 @@ load_dotenv()
 
 class Config():
     def __init__(self):
-        self.authority = "127.0.0.1"
+        self.authority = "*"
         self.config_name = 'default'
         self.host = "0.0.0.0"
         self.port = 80
