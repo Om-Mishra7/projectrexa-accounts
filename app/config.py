@@ -18,7 +18,7 @@ class Config():
         self.recaptcha_site_key = os.getenv("recaptcha_site_key")
         self.github_client_id = os.getenv("github_client_id")
         self.github_client_secret = os.getenv("github_client_secret")
-        self.github_redirect_uri = "/github/callback"
+        self.github_redirect_uri = "http://144.24.104.147/github/callback"
         
 
 class ProductionConfig(Config):
