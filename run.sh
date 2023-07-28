@@ -1,1 +1,1 @@
-sudo nohup gunicorn --bind 0.0.0.0:80 run:gunicorn_app
+sudo nohup gunicorn --bind 0.0.0.0:80 run:app &
