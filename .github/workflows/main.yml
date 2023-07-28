@@ -24,10 +24,9 @@ jobs:
         port: 22
         script: |
           cd account-pr
+          sudo fuser -k 80/tcp
           sudo rm -rf projectrexa-accounts
-          sudo git clone https://github.com/Om-Mishra7/projectrexa-accounts.git
+          git clone git@github.com:Om-Mishra7/projectrexa-accounts.git
           cd projectrexa-accounts
           sudo pip install -r requirements.txt
-          cd ..
-          sudo fuser -k 80/tcp
-          sudo ./run.sh
+          sudo nohup gunicorn --bind 0.0.0.0:80 run:app
