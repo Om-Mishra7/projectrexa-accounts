@@ -5,7 +5,7 @@ load_dotenv()
 
 class Config():
     def __init__(self):
-        self.authority = "144.24.104.147"
+        self.authority = ".projectrexa.dedyn.io"
         self.config_name = 'default'
         self.host = "0.0.0.0"
         self.port = 80
