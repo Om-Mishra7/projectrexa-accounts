@@ -33,5 +33,5 @@ jobs:
           cd projectrexa-accounts
           sudo pip install -r requirements.txt
           cd ..
-          ./run.sh
+          sudo ./run.sh
           exit
