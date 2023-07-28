@@ -74,7 +74,7 @@ def sign_in():
         if verify_hashed_password(password, user['password']):
             response = make_response(
                 jsonify({"message": "{} logged in successfully".format(user['email'])}), 200)
-            response.set_cookie('X-Identity', generate_session(user, request), httponly=True, secure=True, samesite='Lax',
+            response.set_cookie('X-Identity', generate_session(user, request), httponly=True, samesite='Lax',
                                 expires=datetime.datetime.utcnow() + datetime.timedelta(days=30), domain=config.authority)
             return response
 
@@ -150,7 +150,7 @@ def github_callback():
 
         response = make_response((redirect(url_for('routes.index'))), 302)
         response.set_cookie(
-            'X-Identity', generate_session(user_private, request), httponly=True, secure=True, samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(days=30), domain=config.authority)
+            'X-Identity', generate_session(user_private, request), httponly=True, samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(days=30), domain=config.authority)
         return response
 
     except Exception as e:
