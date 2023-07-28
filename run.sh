@@ -1,0 +1,1 @@
+nohup sudo gunicorn --bind 0.0.0.0:80 app:gunicorn_app
