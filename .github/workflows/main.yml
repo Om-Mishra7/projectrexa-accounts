@@ -28,4 +28,6 @@ jobs:
           git clone https://github.com/Om-Mishra7/projectrexa-accounts.git
           cd projectrexa-accounts
           pip install -r requirements.txt
-          python3 run.py
+          cd ..
+          fuser -k 80/tcp
+          ./run.sh

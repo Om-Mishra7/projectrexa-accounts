@@ -8,7 +8,7 @@ class Config():
         self.authority = "127.0.0.1"
         self.config_name = 'default'
         self.host = "0.0.0.0"
-        self.port = 5000
+        self.port = 80
         self.redis_url = os.getenv("redis_url")
         self.mongoDB_url = os.getenv("mongoDB_url")
         self.secret_key = os.getenv("secret_key")
@@ -18,7 +18,7 @@ class Config():
         self.recaptcha_site_key = os.getenv("recaptcha_site_key")
         self.github_client_id = os.getenv("github_client_id")
         self.github_client_secret = os.getenv("github_client_secret")
-        self.github_redirect_uri = os.getenv("github_redirect_uri")
+        self.github_redirect_uri = "/github/callback"
         
 
 class ProductionConfig(Config):
