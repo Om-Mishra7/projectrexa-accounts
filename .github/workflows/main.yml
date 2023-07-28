@@ -32,6 +32,5 @@ jobs:
           git clone git@github.com:Om-Mishra7/projectrexa-accounts.git
           cd projectrexa-accounts
           sudo pip install -r requirements.txt
-          cd ..
           ./run.sh
           exit
