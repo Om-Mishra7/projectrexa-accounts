@@ -8,7 +8,7 @@ class Config():
         self.authority = ".projectrexa.dedyn.io"
         self.config_name = 'default'
         self.host = "0.0.0.0"
-        self.port = 80
+        self.port = 443
         self.redis_url = os.getenv("redis_url")
         self.mongoDB_url = os.getenv("mongoDB_url")
         self.secret_key = os.getenv("secret_key")

@@ -99,12 +99,18 @@ def get_session(request):
                 f.write('{} | ERROR | {}\n\n'.format(
                     datetime.datetime.now(), e))
             return None
-        session = json.loads(redis_client.get(session_id))
-        if session['logged_in'] is False:
-            return make_response(redirect(url_for('routes.sign_in')), 302)
+        try:
+            session = json.loads(redis_client.get(session_id))
+            if session['logged_in'] is False:
+                return make_response(redirect(url_for('routes.sign_in')), 302)
 
-        if session['user_ip_address'] != request.remote_addr:
-            return make_response(redirect(url_for('routes.sign_in')), 302)
+            if session['user_ip_address'] != request.remote_addr:
+                return make_response(redirect(url_for('routes.sign_in')), 302)
+        except Exception as e:
+            with open('log.log', 'a') as f:
+                f.write('{} | ERROR | {}\n\n'.format(
+                    datetime.datetime.now(), e))
+            return None
 
         return session
     else:

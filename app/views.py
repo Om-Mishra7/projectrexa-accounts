@@ -113,7 +113,7 @@ def github_oauth():
     if get_session(request) is not None:
         return redirect(url_for('routes.index'))
     state = secrets.token_hex(32)
-    redis_client.set('github_oauth_state', state)
+    redis_client.set(request.cookies.get('X-Identity'), state, ex=60)
     return make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(config.github_client_id, config.github_redirect_uri, state))), 302
 
 
@@ -124,8 +124,16 @@ def github_callback():
     try:
         code = request.args.get('code')
         state = request.args.get('state')
-        if state != redis_client.get('github_oauth_state'):
+
+        try:
+            if state != redis_client.get(request.cookies.get('X-Identity')):
+                return make_response(jsonify({"message": "Invalid state"}), 400)
+
+            redis_client.delete(request.cookies.get('X-Identity'))
+
+        except Exception as e:
             return make_response(jsonify({"message": "Invalid state"}), 400)
+
         response = requests.post('https://github.com/login/oauth/access_token?client_id={}&client_secret={}&code={}&redirect_uri={}'.format(
             config.github_client_id, config.github_client_secret, code, config.github_redirect_uri), headers={'Accept': 'application/json'})
 
