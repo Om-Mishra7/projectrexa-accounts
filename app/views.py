@@ -25,8 +25,9 @@ routes = Blueprint('routes', __name__)
 def index():
     session = get_session(request)
     if session is None:
-        return redirect(url_for('routes.sign_in'))
-
+        response = make_response(redirect(url_for('routes.sign_in')), 302)
+        response.set_cookie('X-Identity', '', httponly=True, secure=True, samesite='Lax', expires=0)
+        return response
     try:
         try:
             session_id = serializer.loads(request.cookies.get('X-Identity'))
@@ -43,7 +44,7 @@ def index():
 @routes.route('/sign-in', methods=['GET', 'POST'])
 def sign_in():
     if get_session(request) is not None:
-        return redirect(url_for('routes.index'))
+        return redirect(url_for('routes.index'), 302)
     if request.method == 'POST':
 
         # Initial login checks
@@ -87,7 +88,7 @@ def sign_in():
 @routes.route('/sign-up', methods=['GET', 'POST'])
 def signup():
     if get_session(request) is not None:
-        return redirect(url_for('routes.index'))
+        return redirect(url_for('routes.index'), 302)
     if request.method == 'POST':
 
         email = request.form.get('email')
@@ -112,10 +113,12 @@ def signup():
 def github_oauth():
     if get_session(request) is not None:
         return redirect(url_for('routes.index'))
+    secret_cookie = secrets.token_hex(32)
     state = secrets.token_hex(32)
-    redis_client.set(request.cookies.get('X-Identity'), state, ex=60)
-    return make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(config.github_client_id, config.github_redirect_uri, state))), 302
-
+    redis_client.set(secret_cookie, state, ex=30)
+    response = make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(config.github_client_id, config.github_redirect_uri, state))), 302
+    response.set_cookie('X-GitHub-State', secret_cookie, httponly=True, secure=True, samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=30))
+    return response
 
 @routes.route('/callback/github')
 def github_callback():
@@ -126,7 +129,7 @@ def github_callback():
         state = request.args.get('state')
 
         try:
-            if state != redis_client.get(request.cookies.get('X-Identity')):
+            if state != redis_client.get(request.cookies.get('X-GitHub-State')).decode('utf-8'):
                 return make_response(jsonify({"message": "Invalid state"}), 400)
 
             redis_client.delete(request.cookies.get('X-Identity'))
