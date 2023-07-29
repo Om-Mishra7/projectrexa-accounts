@@ -47,4 +47,4 @@ def get_config():
         'maintanance': MaintananceConfig(),
         'default': Config()
     }
-    return config['production']
+    return config['development']
