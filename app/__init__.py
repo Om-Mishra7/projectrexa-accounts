@@ -61,8 +61,6 @@ def set_headers(response):
     response.headers['Cache-Control'] = 'private, max-age=86400,'
     response.headers['Connection'] = 'keep-alive'
     response.headers['Permissions-Policy'] = 'interest-cohort=()'
-    
-
     return response
         
 
