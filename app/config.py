@@ -30,8 +30,10 @@ class DevelopmentConfig(Config):
     def __init__(self):
         super().__init__()
         self.config_name = 'development'
+        self.authority = "127.0.0.1:5000"
         self.debug = True
         self.recaptcha = False
+        self.github_redirect_uri = "http://127.0.0.1:5000/callback/github"
 
 class MaintananceConfig(Config):
     def __init__(self):
@@ -45,4 +47,4 @@ def get_config():
         'maintanance': MaintananceConfig(),
         'default': Config()
     }
-    return config['development']
+    return config['production']

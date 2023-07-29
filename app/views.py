@@ -6,6 +6,7 @@ import secrets
 import requests
 import datetime
 from itsdangerous import URLSafeSerializer, BadSignature
+from flask import make_response, redirect, url_for
 
 config = get_config()
 
@@ -39,7 +40,6 @@ def index():
     except Exception as e:
         print(e)
         return make_response(jsonify({"error": e}), 400)
-
 
 @routes.route('/sign-in', methods=['GET', 'POST'])
 def sign_in():
@@ -84,7 +84,6 @@ def sign_in():
 
     return make_response(render_template('sign_in.html'), 200)
 
-
 @routes.route('/sign-up', methods=['GET', 'POST'])
 def signup():
     if get_session(request) is not None:
@@ -108,7 +107,6 @@ def signup():
 
     return make_response(render_template('sign_up.html'), 200)
 
-
 @routes.route('/oauth/github')
 def github_oauth():
     if get_session(request) is not None:
@@ -116,7 +114,7 @@ def github_oauth():
     secret_cookie = secrets.token_hex(32)
     state = secrets.token_hex(32)
     redis_client.set(secret_cookie, state, ex=30)
-    response = make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(config.github_client_id, config.github_redirect_uri, state))), 302
+    response = make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(config.github_client_id, config.github_redirect_uri, state)))
     response.set_cookie('X-GitHub-State', secret_cookie, httponly=True, secure=True, samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=30))
     return response
 
@@ -129,12 +127,13 @@ def github_callback():
         state = request.args.get('state')
 
         try:
-            if state != redis_client.get(request.cookies.get('X-GitHub-State')).decode('utf-8'):
+            if str(state) != str(redis_client.get(request.cookies.get('X-GitHub-State'))):
                 return make_response(jsonify({"message": "Invalid state"}), 400)
 
-            redis_client.delete(request.cookies.get('X-Identity'))
+            redis_client.delete(request.cookies.get('X-GitHub-State'))
 
         except Exception as e:
+            print(e)
             return make_response(jsonify({"message": "Invalid state"}), 400)
 
         response = requests.post('https://github.com/login/oauth/access_token?client_id={}&client_secret={}&code={}&redirect_uri={}'.format(
@@ -152,7 +151,6 @@ def github_callback():
             user_private = mongoDB_cursor['users'].find_one(
                 {"email": user_data.json()['email']})
         else:
-            print("Private user data exists", user_private)
             if user_private['method'] != 'github':
                 return make_response(jsonify({"message": "This email is already registered with another method"}), 400)
 

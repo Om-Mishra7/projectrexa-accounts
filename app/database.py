@@ -10,7 +10,7 @@ def create_redis_database_connection(max_attempts=10, base_delay=5, attempt_numb
     while attempt_number <= max_attempts:
 
         try:
-            redis_client = redis.Redis.from_url(config.redis_url)
+            redis_client = redis.Redis.from_url(config.redis_url, decode_responses=True)
             redis_client.ping()
             with open("log.log", "a") as f:
                 f.write("{} | INFO - Connected to REDIS database\n\n".format(datetime.datetime.utcnow()))
