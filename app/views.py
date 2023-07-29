@@ -6,7 +6,6 @@ import secrets
 import requests
 import datetime
 from itsdangerous import URLSafeSerializer, BadSignature
-from flask import make_response, redirect, url_for
 
 config = get_config()
 
@@ -38,8 +37,7 @@ def index():
             {"session_id": session_id})
         return make_response(({"user_info": session, "session_info": {"ip_address": session_info['user_ip_address'], "user_agent": session_info['user_agent'], "country": session_info['country'], "city": session_info['city'], "region": session_info['regionName']}}), 200)
     except Exception as e:
-        print(e)
-        return make_response(jsonify({"error": e}), 400)
+        return (jsonify({"error": e}), 400)
 
 @routes.route('/sign-in', methods=['GET', 'POST'])
 def sign_in():
