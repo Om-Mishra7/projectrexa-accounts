@@ -58,6 +58,9 @@ def set_headers(response):
     response.headers['Referrer-Policy'] = 'no-referrer'
     response.headers['X-Powered-By'] = 'Cerberus'
     response.headers['Cache-Control'] = 'private, max-age=3600, must-revalidate' 
+    if request.path.replace("/","") == 'sign-in' or request.path == 'sign-up' or request.path == 'forgot-password' or request.path == 'reset-password' or request.path == 'verify-email' or request.path == 'sign-out':
+        print("here")
+        response.headers['Cache-Control'] = 'no-store'
     response.headers['Permissions-Policy'] = 'interest-cohort=()'
     return response
         

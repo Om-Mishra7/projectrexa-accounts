@@ -10,9 +10,7 @@ from itsdangerous import URLSafeSerializer, BadSignature
 config = get_config()
 
 serializer = URLSafeSerializer(config.secret_key)
-
-session = {"logged_in": True, "username": "Om Mishra"}
-
+ 
 redis_client, mongoDB_client = create_redis_database_connection(
 ), create_mongoDB_database_connection()
 
@@ -24,7 +22,7 @@ routes = Blueprint('routes', __name__)
 @routes.route('/')
 def index():
     session = get_session(request)
-    if session is None:
+    if session is None or not session.is_authenticated():
         response = make_response(redirect(url_for('routes.sign_in')), 302)
         response.set_cookie('X-Identity', '', httponly=True,
                             secure=True, samesite='Lax', expires=0)
@@ -36,14 +34,15 @@ def index():
             return redirect(url_for('routes.sign_in'))
         session_info = mongoDB_cursor['sessions'].find_one(
             {"session_id": session_id})
-        return make_response(({"user_info": session, "session_info": {"ip_address": session_info['user_ip_address'], "user_agent": session_info['user_agent'], "country": session_info['country'], "city": session_info['city'], "region": session_info['regionName']}}), 200)
+        return make_response(({"user_info": session.get_user_info("json"), "session_info": {"ip_address": session_info['user_ip_address'], "user_agent": session_info['user_agent'], "country": session_info['country'], "city": session_info['city'], "region": session_info['regionName']}}), 200)
     except Exception as e:
         return (jsonify({"error": e}), 400)
 
 
 @routes.route('/sign-in', methods=['GET', 'POST'])
 def sign_in():
-    if get_session(request) is not None:
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
         return redirect(url_for('routes.index'), 302)
     if request.method == 'POST':
 
@@ -87,7 +86,8 @@ def sign_in():
 
 @routes.route('/sign-up', methods=['GET', 'POST'])
 def signup():
-    if get_session(request) is not None:
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
         return redirect(url_for('routes.index'), 302)
     if request.method == 'POST':
 
@@ -111,8 +111,9 @@ def signup():
 
 @routes.route('/sign-out')
 def signout():
+    session = get_session(request)
     serializer = URLSafeSerializer(config.secret_key)
-    if get_session(request) is None:
+    if session is None or not session.is_authenticated():
         return redirect(url_for('routes.index'), 302)
 
     response = make_response(redirect(url_for('routes.sign_in')), 302)
@@ -129,7 +130,8 @@ def signout():
 
 @routes.route('/oauth/github')
 def github_oauth():
-    if get_session(request) is not None:
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
         return redirect(url_for('routes.index'))
     secret_cookie = secrets.token_hex(32)
     state = secrets.token_hex(32)
@@ -143,7 +145,8 @@ def github_oauth():
 
 @routes.route('/callback/github')
 def github_callback():
-    if get_session(request) is not None:
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
         return redirect(url_for('routes.index'))
     try:
         code = request.args.get('code')
@@ -156,7 +159,6 @@ def github_callback():
             redis_client.delete(request.cookies.get('X-GitHub-State'))
 
         except Exception as e:
-            print(e)
             return make_response(jsonify({"message": "Invalid state"}), 400)
 
         response = requests.post('https://github.com/login/oauth/access_token?client_id={}&client_secret={}&code={}&redirect_uri={}'.format(
@@ -186,12 +188,12 @@ def github_callback():
         return response
 
     except Exception as e:
-        print(e)
         return make_response(jsonify({"message": "Invalid Request"}), 400)
 
 
 @routes.route('/oauth/google')
 def google_oauth():
-    if get_session(request) is not None:
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
         return redirect(url_for('routes.index'))
     return jsonify("Coming Soon")
