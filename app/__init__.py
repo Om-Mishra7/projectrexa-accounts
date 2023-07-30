@@ -58,6 +58,8 @@ def set_headers(response):
     response.headers['Referrer-Policy'] = 'no-referrer'
     response.headers['X-Powered-By'] = 'Cerberus'
     response.headers['Cache-Control'] = 'private, max-age=86400,'
+    if request.path.replace('/', '') in ['login', 'register', 'logout', 'reset_password', 'reset_password_request', 'verify_email', 'verify_email_request', 'oauthgithub','callbackgithub', 'oauthgoogle', 'callbackgoogle', 'oauthfacebook', 'callbackfacebook']:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Permissions-Policy'] = 'interest-cohort=()'
     return response
         
