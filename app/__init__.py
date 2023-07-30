@@ -57,7 +57,7 @@ def set_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'no-referrer'
     response.headers['X-Powered-By'] = 'Cerberus'
-    response.headers['Cache-Control'] = 'private, max-age=86400,'
+    response.headers['Cache-Control'] = 'private, max-age=3600, must-revalidate' 
     response.headers['Permissions-Policy'] = 'interest-cohort=()'
     return response
         

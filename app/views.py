@@ -26,7 +26,8 @@ def index():
     session = get_session(request)
     if session is None:
         response = make_response(redirect(url_for('routes.sign_in')), 302)
-        response.set_cookie('X-Identity', '', httponly=True, secure=True, samesite='Lax', expires=0)
+        response.set_cookie('X-Identity', '', httponly=True,
+                            secure=True, samesite='Lax', expires=0)
         return response
     try:
         try:
@@ -38,6 +39,7 @@ def index():
         return make_response(({"user_info": session, "session_info": {"ip_address": session_info['user_ip_address'], "user_agent": session_info['user_agent'], "country": session_info['country'], "city": session_info['city'], "region": session_info['regionName']}}), 200)
     except Exception as e:
         return (jsonify({"error": e}), 400)
+
 
 @routes.route('/sign-in', methods=['GET', 'POST'])
 def sign_in():
@@ -82,6 +84,7 @@ def sign_in():
 
     return make_response(render_template('sign_in.html'), 200)
 
+
 @routes.route('/sign-up', methods=['GET', 'POST'])
 def signup():
     if get_session(request) is not None:
@@ -105,6 +108,25 @@ def signup():
 
     return make_response(render_template('sign_up.html'), 200)
 
+
+@routes.route('/sign-out')
+def signout():
+    serializer = URLSafeSerializer(config.secret_key)
+    if get_session(request) is None:
+        return redirect(url_for('routes.index'), 302)
+
+    response = make_response(redirect(url_for('routes.sign_in')), 302)
+
+    try:
+        session_id = serializer.loads(request.cookies.get('X-Identity'))
+        redis_client.delete(session_id)
+    except BadSignature:
+        pass
+    response.set_cookie('X-Identity', '', httponly=True,
+                        secure=True, samesite='Lax', expires=0)
+    return response
+
+
 @routes.route('/oauth/github')
 def github_oauth():
     if get_session(request) is not None:
@@ -112,9 +134,12 @@ def github_oauth():
     secret_cookie = secrets.token_hex(32)
     state = secrets.token_hex(32)
     redis_client.set(secret_cookie, state, ex=30)
-    response = make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(config.github_client_id, config.github_redirect_uri, state)))
-    response.set_cookie('X-GitHub-State', secret_cookie, httponly=True, secure=True, samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=30))
+    response = make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(
+        config.github_client_id, config.github_redirect_uri, state)))
+    response.set_cookie('X-GitHub-State', secret_cookie, httponly=True, secure=True,
+                        samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=30))
     return response
+
 
 @routes.route('/callback/github')
 def github_callback():
@@ -163,3 +188,10 @@ def github_callback():
     except Exception as e:
         print(e)
         return make_response(jsonify({"message": "Invalid Request"}), 400)
+
+
+@routes.route('/oauth/google')
+def google_oauth():
+    if get_session(request) is not None:
+        return redirect(url_for('routes.index'))
+    return jsonify("Coming Soon")
