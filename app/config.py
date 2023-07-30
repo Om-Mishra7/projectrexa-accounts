@@ -47,4 +47,4 @@ def get_config():
         'maintanance': MaintananceConfig(),
         'default': Config()
     }
-    return config['development']
+    return config[os.getenv("config_name") or 'production']

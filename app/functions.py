@@ -16,6 +16,33 @@ redis_client, mongoDB_client = create_redis_database_connection(
 mongoDB_cursor = mongoDB_client['starry_night']
 
 
+class User:
+    def __init__(self, id, name, email, profile_picture, role, ip_address, status):
+        self.id = id
+        self.name = name
+        self.email = email
+        self.profile_picture = profile_picture
+        self.role = role
+        self.ip_address = ip_address
+        self.status = status
+        self.logged_in = True
+
+    def is_authenticated(self):
+        if self.logged_in and self.id is not None and self.status == "active":
+            return True
+        return False
+    
+    def is_admin(self):
+        if self.role == "admin":
+            return True
+        return False
+    
+    def get_user_info(self,format):
+        if format == "json":
+            return {"id": self.id, "name": self.name, "email": self.email, "profile_picture": self.profile_picture, "role": self.role, "ip_address": self.ip_address, "status": self.status, "logged_in": self.logged_in}
+        return self
+
+
 def hash_password(password, salt=None):
     # Generate a salt value if not provided
     if not salt:
@@ -53,6 +80,7 @@ def generate_session(user, request):
         'user_name': user['name'],
         'user_email': user['email'],
         'user_role': user['role'],
+        'status': user['status'],
         'user_profile_picture': user['profile_picture'],
         'user_ip_address': request.remote_addr,
         'user_agent': request.user_agent.string,
@@ -109,8 +137,8 @@ def get_session(request):
                 f.write('{} | ERROR | {}\n\n'.format(
                     datetime.datetime.now(), e))
             return None
-
-        return session
+        
+        return User(session['user_id'], session['user_name'], session['user_email'], session['user_profile_picture'], session['user_role'], session['user_ip_address'], session['status'])
     else:
         return None
 
