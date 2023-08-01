@@ -4,101 +4,56 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign-in</title>
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap");
-      body {
-        text-align: center;
-        background-color: #f5f5f5;
-        font-family: Roboto;
-      }
-
-      h1 {
-        text-align: center;
-        margin-top: 50px;
-      }
-
-      form {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: 50px;
-      }
-
-      input {
-        margin: 10px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 300px;
-      }
-
-      input[type="submit"] {
-        width: 100px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-
-      input[type="submit"]:hover {
-        background-color: #45a049;
-      }
-
-      button {
-        text-align: center;
-        margin-top: 10px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 300px;
-        background-color: #f5f5f5;
-        cursor: pointer;
-      }
-
-      button:hover {
-        background-color: #ddd;
-      }
-
-      a {
-        text-decoration: none;
-        color: black;
-      }
-
-      a:hover {
-        text-decoration: underline;
-      }
-
-      label {
-        margin: 10px;
-      }
-    </style>
+    <title>Sign in | ProjectRexa</title>
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/sign_in.css" />
   </head>
   <body>
-    <h1>Sign-in | ProjectRexa</h1>
-    <form action="/sign-in" method="post">
-      <label for="email">Email</label>
-      <input
-        type="email"
-        name="email"
-        id="email"
-        placeholder="Email"
-        required
-      />
-      <br />
-      <label for="password">Password</label>
-      <input
-        type="password"
-        name="password"
-        id="password"
-        placeholder="Password"
-        required
-      />
-      <input type="submit" value="Sign-in" />
-    </form>
-    <br />
-    <button><a href="/oauth/github">Sign-in with Github</a></button>
-    <br />
-    <button><a href="/sign-up">Sign-up</a></button>
+    <main>
+      <div class="login_container">
+        <h1>Sign in to projectrexa</h1>
+        <div class="social_login">
+          <p class="smaller_text">Continue with one of the following options</p>
+          <div class="social_icons">
+            <button onclick="window.location.href='/oauth/github'" >
+              <img src="/static/images/github_logo.png" alt="github" />
+            </button>
+
+            <button onclick="window.location.href='/oauth/google'">
+              <img src="/static/images/google_logo.svg" alt="google"/>
+             </button>
+          </div>
+        </div>
+        <form action="/sign-in" method="post">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            name="email"
+            id="email"
+            placeholder="user@projectrexa.dedyn.io"
+            required
+          />
+          <br />
+          <label for="password">Password</label>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Enter your password"
+            required
+          />
+          <p class="highlight">
+            <a href="/forgot-password">Forgot password?</a>
+          </p>
+          <br />
+          <button type="submit">Sign in</button>
+        </form>
+        <br />
+        <p class="smaller_text account_registration">
+          Don't have an account?
+          <span class="highlight"><a href="/sign-up">Sign up</a></span>
+        </p>
+      </div>
+    </main>
   </body>
 </html>
