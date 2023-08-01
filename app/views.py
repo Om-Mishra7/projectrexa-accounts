@@ -1,7 +1,7 @@
 from app.database import create_redis_database_connection, create_mongoDB_database_connection
 from app.config import get_config
-from app.functions import hash_password, verify_hashed_password, verify_recaptcha, generate_session, get_session, generate_user_id
-from flask import request, jsonify, make_response, Blueprint, render_template, redirect, url_for
+from app.functions import hash_password, verify_hashed_password, verify_recaptcha, generate_session, get_session, generate_user_id, generate_token, send_mail
+from flask import request, jsonify, make_response, Blueprint, render_template, redirect, url_for, send_from_directory
 import secrets
 import requests
 import datetime
@@ -18,6 +18,9 @@ mongoDB_cursor = mongoDB_client['starry_night']
 
 routes = Blueprint('routes', __name__)
 
+@routes.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static/images', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @routes.route('/')
 def index():
@@ -71,7 +74,7 @@ def sign_in():
         if user is None or user['method'] != 'email':
             return make_response(jsonify({"message": "User does not exist"}), 400)
 
-        if verify_hashed_password(password, user['password']):
+        if verify_hashed_password(password, user['password']) and user['verified'] == True and user['status'] == 'active':
             response = make_response(
                 jsonify({"message": "{} logged in successfully".format(user['email'])}), 200)
             response.set_cookie('X-Identity', generate_session(user, request), httponly=True, secure=True, samesite='Lax',
@@ -103,7 +106,7 @@ def signup():
         password, salt = hash_password(password)
 
         mongoDB_cursor['users'].insert_one(
-            {"email": email, "password": password, "salt": salt})
+            {"email": email, "password": password, "salt": salt, "method": "email", "user_id": generate_user_id(), "verified": False, "name":"User", "role": "user", "status": "active", "created_at": datetime.datetime.utcnow(), "last_login": datetime.datetime.utcnow()})
         return make_response(jsonify({"message": "User created successfully"}), 200)
 
     return make_response(render_template('sign_up.html'), 200)
@@ -197,3 +200,101 @@ def google_oauth():
     if session is not None and session.is_authenticated():
         return redirect(url_for('routes.index'))
     return jsonify("Coming Soon")
+
+
+@routes.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
+        return redirect(url_for('routes.index'))
+    if request.method == 'POST':
+        email = request.form.get('email')
+        if email is None:
+            return make_response(jsonify({"message": "Email is missing"}), 400)
+        user = mongoDB_cursor['users'].find_one({"email": email})
+        if user is None:
+            return make_response(jsonify({"message": "If we find an account associated with this email, we will send you a link to reset your password"}), 200)
+        if user['method'] != 'email':
+            return make_response(jsonify({"message": "This email is registered with another method"}), 400)
+        token = generate_token(user)
+        if not send_mail(user, token, 'forgot_password'):
+            return make_response(jsonify({"message": "We are unable to send you an email at this time. Please try again later"}), 500)
+        return make_response(jsonify({"message": "If we find an account associated with this email, we will send you a link to reset your password"}), 200)
+    return make_response(render_template('forgot_password.html'), 200)
+
+
+@routes.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    serializer = URLSafeSerializer(config.secret_key)
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
+        return redirect(url_for('routes.index'))
+    """ if request.method == 'POST':
+        token = request.form.get('token')
+        password = request.form.get('password')
+        if token is None or password is None:
+            return make_response(jsonify({"message": "Token or Password is missing"}), 400)
+        try:
+            user = verify_token(token)
+        except Exception as e:
+            return make_response(jsonify({"message": "Invalid Token"}), 400)
+        mongoDB_cursor['users'].update_one({"email": user['email']}, {
+                                           "$set": {"password": hash_password(password, user['salt'])}})
+        return make_response(jsonify({"message": "Password reset successfully"}), 200) """
+    token = request.args.get('token')
+    if token is None:
+        return make_response(jsonify({"message": "Token is missing"}), 400)
+    try:
+        serializer = URLSafeSerializer(config.secret_key)
+        token = serializer.loads(token)
+        if mongoDB_cursor['tokens'].find_one({"token": token}) is None:
+            print("Token not found")
+            return make_response(jsonify({"message": "Invalid Token"}), 400)
+        
+        mongoDB_cursor['tokens'].delete_one({"token": token})
+        return make_response(jsonify({"message": "Token is valid"}), 200)
+    except Exception as e:
+        print(e)
+        return make_response(jsonify({"message": "Invalid Token"}), 400)
+    
+
+@routes.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    session = get_session(request)
+    if session is None or not session.is_authenticated():
+        return redirect(url_for('routes.login'))
+    if request.method == 'POST':
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+        if old_password is None or new_password is None:
+            return make_response(jsonify({"message": "Old Password or New Password is missing"}), 400)
+        user = mongoDB_cursor['users'].find_one({"id": session.user_id})
+        if user is None:
+            return make_response(jsonify({"message": "User not found"}), 400)
+        if user['method'] != 'email':
+            return make_response(jsonify({"message": "This email is registered with another method"}), 400)
+        if not verify_hashed_password(old_password, user['password'], user['salt']):
+            return make_response(jsonify({"message": "Incorrect Password"}), 400)
+        mongoDB_cursor['users'].update_one({"id": user['id']}, {
+                                           "$set": {"password": hash_password(new_password)}})
+        return make_response(jsonify({"message": "Password changed successfully"}), 200)
+    return make_response(render_template('change_password.html'), 200)
+
+
+@routes.route('/user/<user_id>')
+def user(user_id):
+    session = get_session(request)
+    if session is None or not session.is_authenticated():
+        return redirect(url_for('routes.login'))
+    if user_id == session.user_id:
+        return redirect(url_for('routes.index'))
+    user = mongoDB_cursor['users'].find_one({"id": user_id})
+    if user is None:
+        return make_response(jsonify({"message": "User not found"}), 400)
+    return make_response(render_template('user.html', user=user), 200)
+
+
+@routes.route('/ping')
+def ping():
+    return make_response(jsonify({"message": "pong"}), 200)
+

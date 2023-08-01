@@ -6,7 +6,9 @@ import json
 import secrets
 from itsdangerous import URLSafeSerializer
 import datetime
-from flask import make_response, redirect, url_for
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
+from flask import render_template
 
 config = get_config()
 
@@ -14,6 +16,10 @@ redis_client, mongoDB_client = create_redis_database_connection(
 ), create_mongoDB_database_connection()
 
 mongoDB_cursor = mongoDB_client['starry_night']
+
+# Sendinblue API Key
+configuration = sib_api_v3_sdk.Configuration()
+configuration.api_key['api-key'] = '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'
 
 
 class User:
@@ -31,13 +37,13 @@ class User:
         if self.logged_in and self.id is not None and self.status == "active":
             return True
         return False
-    
+
     def is_admin(self):
         if self.role == "admin":
             return True
         return False
-    
-    def get_user_info(self,format):
+
+    def get_user_info(self, format):
         if format == "json":
             return {"id": self.id, "name": self.name, "email": self.email, "profile_picture": self.profile_picture, "role": self.role, "ip_address": self.ip_address, "status": self.status, "logged_in": self.logged_in}
         return self
@@ -131,13 +137,13 @@ def get_session(request):
             session = json.loads(redis_client.get(session_id))
             if session['user_ip_address'] != request.remote_addr:
                 return None
-                
+
         except Exception as e:
             with open('log.log', 'a') as f:
                 f.write('{} | ERROR | {}\n\n'.format(
                     datetime.datetime.now(), e))
             return None
-        
+
         return User(session['user_id'], session['user_name'], session['user_email'], session['user_profile_picture'], session['user_role'], session['user_ip_address'], session['status'])
     else:
         return None
@@ -148,3 +154,42 @@ def generate_user_id():
     if mongoDB_cursor['users'].find_one({"id": user_id}) is not None:
         return generate_user_id()
     return user_id
+
+
+def generate_token(user):
+    serializer = URLSafeSerializer(config.secret_key)
+    token = secrets.token_hex(32)
+    mongoDB_cursor['tokens'].insert_one({
+        "token": token,
+        "user_id": user['id'],
+        "created_at": datetime.datetime.now(),
+        "expires_at": datetime.datetime.now() + datetime.timedelta(hours=6)
+    })
+
+    return (serializer.dumps(token))
+
+
+def send_mail(user, token, type):
+    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+        sib_api_v3_sdk.ApiClient(configuration))
+
+    match type:
+        case "forgot_password":
+            subject = "Forgot Password Request | ProjectRexa"
+            sender = {"name": "ProjectRexa", "email": "noreply@projectrexa.dedyn.io"}
+            to = [{"email": user["email"], "name": "Admin"}]
+            reply_to = {"email": "contact@projectrexa.dedyn.io", "name": "ProjectRexa"}
+            html = render_template('email/forgot_password.html', name = user['name'], link = "https://accounts.projectrexa.dedyn.io/reset-password?token={}".format(token))
+            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+                to=to, html_content= html, reply_to=reply_to, sender=sender, subject=subject)
+
+        case _:
+            return False
+    try:
+        api_instance.send_transac_email(send_smtp_email)
+        return True
+    except ApiException as e:
+        with open('log.log', 'a') as f:
+            f.write('{} | ERROR | {}\n\n'.format(
+                datetime.datetime.now(), e))
+        return False
