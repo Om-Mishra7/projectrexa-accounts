@@ -26,6 +26,7 @@ jobs:
           cd account-pr
           sudo apt update
           sudo apt install gunicorn -y
+          python3 -m pip install --upgrade pip
           sudo fuser -k 80/tcp
           sudo killall gunicorn
           sudo rm -rf projectrexa-accounts

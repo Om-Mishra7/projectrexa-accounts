@@ -35,11 +35,12 @@ main {
     border-radius: 10px;
     padding: 20px;
     z-index: 5;
+    margin-top: 10px;
 }
 
 .social_login {
     margin-top: 30px;
-    margin-bottom: 30px;
+    margin-bottom: 15px;
 }
 
 .social_icons {
@@ -80,6 +81,7 @@ form {
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
+    margin-top: 10px;
 }
 
 form input {
@@ -150,4 +152,25 @@ p {
     color: var(--primary);
     font-weight: 600;
     font-size: 1rem;
+}
+
+.error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.danger {
+    color: red;
+    font-size: .8rem;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.danger-link {
+    color: red;
+    font-size: .8rem;
+    text-align: center;
+    text-transform: uppercase;
+    text-decoration: underline;
 }

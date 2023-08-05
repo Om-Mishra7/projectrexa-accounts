@@ -32,7 +32,7 @@ class DevelopmentConfig(Config):
         self.config_name = 'development'
         self.authority = "127.0.0.1:5000"
         self.debug = True
-        self.recaptcha = False
+        self.recaptcha = True
         self.github_redirect_uri = "http://127.0.0.1:5000/callback/github"
 
 class MaintananceConfig(Config):

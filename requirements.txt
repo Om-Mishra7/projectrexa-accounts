@@ -6,3 +6,4 @@ python-dotenv
 bcrypt
 sentry-sdk[flask]
 sib-api-v3-sdk
+Flask-Limiter

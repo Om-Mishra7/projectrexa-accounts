@@ -4,7 +4,6 @@ from app.views import routes
 from app.config import get_config
 import datetime
 import sentry_sdk
-from sentry_sdk.integrations.flask import FlaskIntegration
 
 
 config = get_config()
@@ -21,6 +20,7 @@ sentry_sdk.init(
 
 app = Flask(__name__)
 redis_client, mongoDB_client = create_redis_database_connection(), create_mongoDB_database_connection()
+
 
 app.register_blueprint(routes)
 

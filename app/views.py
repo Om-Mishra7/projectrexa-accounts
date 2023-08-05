@@ -2,15 +2,18 @@ from app.database import create_redis_database_connection, create_mongoDB_databa
 from app.config import get_config
 from app.functions import hash_password, verify_hashed_password, verify_recaptcha, generate_session, get_session, generate_user_id, generate_token, send_mail
 from flask import request, jsonify, make_response, Blueprint, render_template, redirect, url_for, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import secrets
 import requests
 import datetime
 from itsdangerous import URLSafeSerializer, BadSignature
 
+
 config = get_config()
 
 serializer = URLSafeSerializer(config.secret_key)
- 
+
 redis_client, mongoDB_client = create_redis_database_connection(
 ), create_mongoDB_database_connection()
 
@@ -18,9 +21,11 @@ mongoDB_cursor = mongoDB_client['starry_night']
 
 routes = Blueprint('routes', __name__)
 
+
 @routes.route('/favicon.ico')
 def favicon():
     return send_from_directory('static/images', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 
 @routes.route('/')
 def index():
@@ -51,28 +56,32 @@ def sign_in():
 
         # Initial login checks
         try:
-            email = request.form.get('email')
-            password = request.form.get('password')
+            request_data = request.get_json()
+            email = request_data['email']
+            password = request_data['password']
 
             if email is None or password is None:
-                return make_response(jsonify({"message": "Email or Password is missing"}), 400)
+                return make_response(jsonify({"message": "Email / Password is missing"}), 400)
 
             if config.recaptcha:
-                recaptcha_response = request.form.get('g-recaptcha-response')
+                recaptcha_response = request_data['recaptcha_response']
 
                 if recaptcha_response is None:
-                    return make_response(jsonify({"message": "Recaptcha is missing"}), 400)
+                    return make_response(jsonify({"message": "Recaptcha is missing, please try again"}), 400)
 
                 if not verify_recaptcha(recaptcha_response):
-                    return make_response(jsonify({"message": "Recaptcha is invalid"}), 400)
-        except:
-            return make_response(jsonify({"message": "Invalid Request"}), 400)
+                    return make_response(jsonify({"message": "Recaptcha is invalid, please try again"}), 400)
+        except Exception as e:
+            return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
 
         # Database checks
-        user = mongoDB_cursor['users'].find_one({"email": email})
+        try:
+            user = mongoDB_cursor['users'].find_one({"email": email})
+        except:
+            return make_response(jsonify({"message": "We are experiencing some issues, please try again later"}), 500)
 
         if user is None or user['method'] != 'email':
-            return make_response(jsonify({"message": "User does not exist"}), 400)
+            return make_response(jsonify({"message": "Email / Password is incorrect"}), 400) 
 
         if verify_hashed_password(password, user['password']) and user['verified'] == True and user['status'] == 'active':
             response = make_response(
@@ -81,8 +90,14 @@ def sign_in():
                                 expires=datetime.datetime.utcnow() + datetime.timedelta(days=30), domain=config.authority)
             return response
 
+        elif user['verified'] == False:
+            return make_response(jsonify({"message": "Email is not verified, please check your inbox or request a <a href='/resend-verification' class='danger-link'>new verification email</a>"}), 400)
+        
+        elif user['status'] == 'suspended':
+            return make_response(jsonify({"message": "Account is suspended, please contact support"}), 400)
+        
         else:
-            return make_response(jsonify({"message": "Password is incorrect"}), 400)
+            return make_response(jsonify({"message": "Email / Password is incorrect"}), 400)
 
     return make_response(render_template('sign_in.html'), 200)
 
@@ -103,10 +118,8 @@ def signup():
         if mongoDB_cursor['users'].find_one({"email": email}) is not None:
             return make_response(jsonify({"message": "Email already exists"}), 400)
 
-        password, salt = hash_password(password)
-
         mongoDB_cursor['users'].insert_one(
-            {"email": email, "password": password, "salt": salt, "method": "email", "user_id": generate_user_id(), "verified": False, "name":"User", "role": "user", "status": "active", "created_at": datetime.datetime.utcnow(), "last_login": datetime.datetime.utcnow()})
+            {"email": email, "password": hash_password(password),"method": "email", "user_id": generate_user_id(), "verified": False, "name": "User", "role": "user", "status": "active", "created_at": datetime.datetime.utcnow(), "last_login": datetime.datetime.utcnow()})
         return make_response(jsonify({"message": "User created successfully"}), 200)
 
     return make_response(render_template('sign_up.html'), 200)
@@ -142,7 +155,7 @@ def github_oauth():
     response = make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(
         config.github_client_id, config.github_redirect_uri, state)))
     response.set_cookie('X-GitHub-State', secret_cookie, httponly=True, secure=True,
-                        samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=30))
+                        samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=90))
     return response
 
 
@@ -168,16 +181,24 @@ def github_callback():
             config.github_client_id, config.github_client_secret, code, config.github_redirect_uri), headers={'Accept': 'application/json'})
 
         user_data = requests.get('https://api.github.com/user', headers={
-                                 'Authorization': 'Bearer {}'.format(response.json()['access_token'])})
-
+                                 'Authorization': 'Bearer {}'.format(response.json()['access_token'])}).json()
+        
+        if user_data['email'] is None:
+            email = requests.get('https://api.github.com/user/emails', headers={
+                'Authorization': 'Bearer {}'.format(response.json()['access_token'])}).json()
+            for record in email:
+                if record['primary'] == True:
+                    user_data['email'] = record['email']
+                    break
+        print(user_data)
         user_private = mongoDB_cursor['users'].find_one(
-            {"email": user_data.json()['email']})
+            {"email": user_data['email']})
 
         if user_private is None:
-            mongoDB_cursor['users'].insert_one({"id": generate_user_id(), "email": user_data.json()['email'], "password": None, "salt": None, "method": "github", "name": user_data.json()[
-                                               'name'], "profile_picture": user_data.json()['avatar_url'], "role": "user", "last_login": datetime.datetime.utcnow(), "created_at": datetime.datetime.utcnow(), "status": "active"})
+            mongoDB_cursor['users'].insert_one({"id": generate_user_id(), "email": user_data['email'], "password": None, "salt": None, "method": "github", "name": user_data[
+                                               'name'], "profile_picture": user_data['avatar_url'], "role": "user", "last_login": datetime.datetime.utcnow(), "created_at": datetime.datetime.utcnow(), "status": "active"})
             user_private = mongoDB_cursor['users'].find_one(
-                {"email": user_data.json()['email']})
+                {"email": user_data['email']})
         else:
             if user_private['method'] != 'github':
                 return make_response(jsonify({"message": "This email is already registered with another method"}), 400)
@@ -250,13 +271,13 @@ def reset_password():
         if mongoDB_cursor['tokens'].find_one({"token": token}) is None:
             print("Token not found")
             return make_response(jsonify({"message": "Invalid Token"}), 400)
-        
+
         mongoDB_cursor['tokens'].delete_one({"token": token})
         return make_response(jsonify({"message": "Token is valid"}), 200)
     except Exception as e:
         print(e)
         return make_response(jsonify({"message": "Invalid Token"}), 400)
-    
+
 
 @routes.route('/change-password', methods=['GET', 'POST'])
 def change_password():
@@ -297,4 +318,3 @@ def user(user_id):
 @routes.route('/ping')
 def ping():
     return make_response(jsonify({"message": "pong"}), 200)
-

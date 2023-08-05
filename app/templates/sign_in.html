@@ -5,26 +5,40 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign in | ProjectRexa</title>
+    <link rel="preconnect" href="https://www.google.com" />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
     <link rel="stylesheet" href="/static/css/base.css" />
     <link rel="stylesheet" href="/static/css/sign_in.css" />
+    <script src="/static/js/login.js" defer></script>
+    <script src="https://www.google.com/recaptcha/api.js?render=6LdINlonAAAAAK5yArQKUqdHU7sIM8lWD_t_ttOU" defer></script>
   </head>
   <body>
+    <script>
+      function onSubmit(token) {
+        document.getElementById("login-form").submit();
+      }
+    </script>
     <main>
       <div class="login_container">
         <h1>Sign in to projectrexa</h1>
         <div class="social_login">
           <p class="smaller_text">Continue with one of the following options</p>
           <div class="social_icons">
-            <button onclick="window.location.href='/oauth/github'" >
+            <button onclick="window.location.href='/oauth/github'">
               <img src="/static/images/github_logo.png" alt="github" />
             </button>
 
             <button onclick="window.location.href='/oauth/google'">
-              <img src="/static/images/google_logo.svg" alt="google"/>
-             </button>
+              <img src="/static/images/google_logo.svg" alt="google" />
+            </button>
           </div>
         </div>
-        <form action="/sign-in" method="post">
+        <div class="error">
+          <p id="error-text" class="danger">
+            &nbsp;
+          </p>
+        </div>
+        <form action="/sign-in" method="post" id="login-form">
           <label for="email">Email</label>
           <input
             type="email"
@@ -46,7 +60,12 @@
             <a href="/forgot-password">Forgot password?</a>
           </p>
           <br />
-          <button type="submit">Sign in</button>
+          <button
+            onclick="event.preventDefault();submitForm();"
+            id = "login-button"
+          >
+            Sign in
+          </button>
         </form>
         <br />
         <p class="smaller_text account_registration">

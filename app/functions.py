@@ -58,7 +58,7 @@ def hash_password(password, salt=None):
     hashed_password = bcrypt.hashpw(
         password.encode('utf-8'), salt.encode('utf-8'))
 
-    return hashed_password.decode('utf-8'), salt
+    return hashed_password.decode('utf-8')
 
 
 def verify_hashed_password(password, hashed_password):
@@ -73,7 +73,7 @@ def verify_recaptcha(recaptcha_response):
     response = requests.post(
         "https://www.google.com/recaptcha/api/siteverify", payload)
     response_text = json.loads(response.text)
-    if response_text['success'] == "true":
+    if response_text['success'] == True:
         return True
     return False
 
