@@ -7,3 +7,4 @@ bcrypt
 sentry-sdk[flask]
 sib-api-v3-sdk
 Flask-Limiter
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
