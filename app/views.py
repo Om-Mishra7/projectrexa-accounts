@@ -155,7 +155,7 @@ def github_oauth():
     response = make_response(redirect('https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}&scope=user:email'.format(
         config.github_client_id, config.github_redirect_uri, state)))
     response.set_cookie('X-GitHub-State', secret_cookie, httponly=True, secure=True,
-                        samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=90))
+                        samesite='Lax', expires=datetime.datetime.utcnow() + datetime.timedelta(seconds=180))
     return response
 
 
