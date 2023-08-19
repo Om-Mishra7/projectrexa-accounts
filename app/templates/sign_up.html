@@ -1,105 +1,38 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign-up</title>
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap");
-      body {
-        text-align: center;
-        background-color: #f5f5f5;
-        font-family: Roboto;
-      }
-
-      h1 {
-        text-align: center;
-        margin-top: 50px;
-      }
-
-      form {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: 50px;
-      }
-
-      input {
-        margin: 10px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 300px;
-      }
-
-      input[type="submit"] {
-        width: 100px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-
-      input[type="submit"]:hover {
-        background-color: #45a049;
-      }
-
-      button {
-        text-align: center;
-        margin-top: 10px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 300px;
-        background-color: #f5f5f5;
-        cursor: pointer;
-      }
-
-      button:hover {
-        background-color: #ddd;
-      }
-
-      a {
-        text-decoration: none;
-        color: black;
-      }
-
-      a:hover {
-        text-decoration: underline;
-      }
-
-      label {
-        margin: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Sign-up</h1>
-    <form action="/sign-up" method="post">
-      <label for="email">Email</label>
-      <input
-        type="email"
-        name="email"
-        id="email"
-        placeholder="Email"
-        required
-      />
-      <br />
-      <label for="password">Password</label>
-      <input
-        type="password"
-        name="password"
-        id="password"
-        placeholder="Password"
-        required
-      />
-      <input type="submit" value="Sign-up" />
-    </form>
-    <button><a href="/oauth/google">Sign-up with Google</a></button>
-    <br />
-    <button><a href="/oauth/github">Sign-up with Github</a></button>
-    <br />
-    <button><a href="/sign-in">Sign-in</a></button>
-  </body>
+   <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Sign up | ProjectRexa</title>
+      <link rel="preconnect" href="https://www.google.com" />
+      <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+      <link rel="stylesheet" href="/static/css/base.css" />
+      <link rel="stylesheet" href="/static/css/auth.css" />
+      <script src="/static/js/signup.js" defer></script> <script src="https://www.google.com/recaptcha/api.js?render=6LdINlonAAAAAK5yArQKUqdHU7sIM8lWD_t_ttOU" defer></script> 
+   </head>
+   <body>
+      <script> function onSubmit(token) { document.getElementById("signup-form").submit(); } </script> 
+      <main>
+         <div class="login_container">
+            <h1>Sign up to projectrexa</h1>
+            <div class="social_login">
+               <p class="smaller_text">Continue with one of the following options</p>
+               <div class="social_icons"> <button onclick="window.location.href='/oauth/github'"> <img src="/static/images/github_logo.png" alt="github" /> </button> <button onclick="window.location.href='/oauth/google'"> <img src="/static/images/google_logo.svg" alt="google" /> </button> </div>
+            </div>
+            <div class="error">
+               <p id="error-text" class="danger"> {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %} {{ message }}</li> {% endfor %} 
+               </ul> {% endif %} {% endwith %} &nbsp; </p> 
+            </div>
+            <form action="/sign-up" method="post" id="signup-form">
+               <label for="username">Username</label> <input type="text" name="username" id="username" placeholder="Enter your username" required /> <br>
+               <label for="email">Email</label> <input type="email" name="email" id="email" placeholder="Enter your email" required /> <br>
+               <label for="password">Password</label> <input type="password" name="password" id="password" placeholder="Enter a secure password" required /> 
+               <br /> <button onclick="event.preventDefault();submitForm();" id = "signup-button" > Sign up </button> 
+            </form>
+            <br /> 
+            <p class="smaller_text account_registration"> Already have an account? <span class="highlight"><a href="/sign-in">Sign in</a></span> </p>
+         </div>
+      </main>
+   </body>
 </html>

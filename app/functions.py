@@ -8,7 +8,7 @@ from itsdangerous import URLSafeSerializer
 import datetime
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
-from flask import render_template
+from flask import render_template, make_response, redirect, url_for
 
 config = get_config()
 
@@ -23,8 +23,8 @@ configuration.api_key['api-key'] = 'xkeysib-0ae05bc4a60f07f191b736acaaec5c2f2856
 
 
 class User:
-    def __init__(self, id, name, email, profile_picture, role, ip_address, status):
-        self.id = id
+    def __init__(self, user_id, name, email, profile_picture, role, ip_address, status):
+        self.user_id = user_id
         self.name = name
         self.email = email
         self.profile_picture = profile_picture
@@ -34,7 +34,7 @@ class User:
         self.logged_in = True
 
     def is_authenticated(self):
-        if self.logged_in and self.id is not None and self.status == "active":
+        if self.logged_in and self.user_id is not None and self.status == "active":
             return True
         return False
 
@@ -45,7 +45,7 @@ class User:
 
     def get_user_info(self, format):
         if format == "json":
-            return {"id": self.id, "name": self.name, "email": self.email, "profile_picture": self.profile_picture, "role": self.role, "ip_address": self.ip_address, "status": self.status, "logged_in": self.logged_in}
+            return {"user_id": self.user_id, "name": self.name, "email": self.email, "profile_picture": self.profile_picture, "role": self.role, "ip_address": self.ip_address, "status": self.status, "logged_in": self.logged_in}
         return self
 
 
@@ -82,7 +82,7 @@ def generate_session(user, request):
     serializer = URLSafeSerializer(config.secret_key)
     session = {
         'logged_in': True,
-        'user_id': user['id'],
+        'user_id': user['user_id'],
         'user_name': user['name'],
         'user_email': user['email'],
         'user_role': user['role'],
@@ -109,7 +109,7 @@ def generate_session(user, request):
 
     mongoDB_cursor['sessions'].insert_one({
         "session_id": session_id,
-        "user_id": user['id'],
+        "user_id": user['user_id'],
         "user_ip_address": request.remote_addr,
         "user_agent": request.user_agent.string,
         "created_at": datetime.datetime.now(),
@@ -151,7 +151,7 @@ def get_session(request):
 
 def generate_user_id():
     user_id = secrets.token_hex(16)
-    if mongoDB_cursor['users'].find_one({"id": user_id}) is not None:
+    if mongoDB_cursor['users'].find_one({"user_id": user_id}) is not None:
         return generate_user_id()
     return user_id
 
@@ -161,13 +161,27 @@ def generate_token(user):
     token = secrets.token_hex(32)
     mongoDB_cursor['tokens'].insert_one({
         "token": token,
-        "user_id": user['id'],
+        "user_id": user['user_id'],
         "created_at": datetime.datetime.now(),
         "expires_at": datetime.datetime.now() + datetime.timedelta(hours=6)
     })
 
     return (serializer.dumps(token))
 
+def rate_limit_hit(remote_addr, user_id = None, allowed_requests = 1000):
+    if redis_client.get(remote_addr) is None:
+        redis_client.set(remote_addr, 1, ex=3600)
+        return 1
+    else:
+        redis_client.incr(remote_addr)
+        redis_client.expire(remote_addr, 3600)
+        number_of_requests = int(redis_client.get(remote_addr))
+        if (number_of_requests) > 10000:
+            mongoDB_cursor["users"].update_one({"user_id": user_id}, {"$set": {"status": "suspended"}})
+            return True
+        if (number_of_requests) > allowed_requests:
+            return True
+        return False
 
 def send_mail(user, token, type):
     api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
@@ -177,12 +191,21 @@ def send_mail(user, token, type):
         case "forgot_password":
             subject = "Forgot Password Request | ProjectRexa"
             sender = {"name": "ProjectRexa", "email": "noreply@projectrexa.dedyn.io"}
-            to = [{"email": user["email"], "name": "Admin"}]
+            to = [{"email": user["email"], "name": user["name"]}]
             reply_to = {"email": "contact@projectrexa.dedyn.io", "name": "ProjectRexa"}
             html = render_template('email/forgot_password.html', name = user['name'], link = "https://accounts.projectrexa.dedyn.io/reset-password?token={}".format(token))
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
                 to=to, html_content= html, reply_to=reply_to, sender=sender, subject=subject)
 
+        case "verify_email":
+            subject = "Verify Email | ProjectRexa"
+            sender = {"name": "ProjectRexa", "email": "noreply@projectrexa.dedyn.io"}
+            to = [{"email": user["email"], "name": user["name"]}]
+            reply_to = {"email": "contact@projectrexa.dedyn.io", "name": "ProjectRexa"}
+            html = render_template('email/verify_email.html', name = user['name'], link = "https://accounts.projectrexa.dedyn.io/verify-email?token={}".format(token))
+            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+                to=to, html_content= html, reply_to=reply_to, sender=sender, subject=subject)
+            
         case _:
             return False
     try:

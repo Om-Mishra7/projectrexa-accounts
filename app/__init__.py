@@ -21,6 +21,7 @@ sentry_sdk.init(
 app = Flask(__name__)
 redis_client, mongoDB_client = create_redis_database_connection(), create_mongoDB_database_connection()
 
+app.config['SECRET_KEY'] = config.secret_key
 
 app.register_blueprint(routes)
 
@@ -57,9 +58,6 @@ def set_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'no-referrer'
     response.headers['X-Powered-By'] = 'Cerberus'
-    response.headers['Cache-Control'] = 'private, max-age=86400,'
-    if request.path.replace('/', '') in ['sign-in', 'sign-up', 'sign-out', 'reset-password', 'forgot-password', 'verify-email', 'oauthgithub','callbackgithub', 'oauthgoogle', 'callbackgoogle', 'oauthfacebook', 'callbackfacebook']:
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Permissions-Policy'] = 'interest-cohort=()'
     return response
         

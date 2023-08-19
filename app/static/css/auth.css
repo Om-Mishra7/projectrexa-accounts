@@ -30,17 +30,17 @@ main {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    height: 600px;
+    height: 630px;
     width: 350px;
     border-radius: 10px;
     padding: 20px;
     z-index: 5;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .social_login {
-    margin-top: 30px;
-    margin-bottom: 15px;
+    margin-top: 25px;
+    margin-bottom: 10px;
 }
 
 .social_icons {
@@ -81,7 +81,7 @@ form {
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 form input {
@@ -92,8 +92,8 @@ form input {
     border: none;
     background-color: var(--main);
     border-radius: 10px;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin-top: 8px;
+    margin-bottom: 8px;
     border: 2px solid var(--secondary);
     transition: 0.3s;
     color: var(--text);
