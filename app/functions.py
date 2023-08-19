@@ -156,32 +156,19 @@ def generate_user_id():
     return user_id
 
 
-def generate_token(user):
+def generate_token(user, scope):
     serializer = URLSafeSerializer(config.secret_key)
     token = secrets.token_hex(32)
     mongoDB_cursor['tokens'].insert_one({
         "token": token,
         "user_id": user['user_id'],
         "created_at": datetime.datetime.now(),
-        "expires_at": datetime.datetime.now() + datetime.timedelta(hours=6)
+        "expires_at": datetime.datetime.now() + datetime.timedelta(hours=6),
+        "scope":scope
     })
 
     return (serializer.dumps(token))
 
-def rate_limit_hit(remote_addr, user_id = None, allowed_requests = 1000):
-    if redis_client.get(remote_addr) is None:
-        redis_client.set(remote_addr, 1, ex=3600)
-        return 1
-    else:
-        redis_client.incr(remote_addr)
-        redis_client.expire(remote_addr, 3600)
-        number_of_requests = int(redis_client.get(remote_addr))
-        if (number_of_requests) > 10000:
-            mongoDB_cursor["users"].update_one({"user_id": user_id}, {"$set": {"status": "suspended"}})
-            return True
-        if (number_of_requests) > allowed_requests:
-            return True
-        return False
 
 def send_mail(user, token, type):
     api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
