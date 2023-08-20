@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response, redirect, url_for
+from flask import Flask, request, make_response, redirect, url_for, jsonify
 from app.database import create_redis_database_connection, create_mongoDB_database_connection
 from app.views import routes
 from app.config import get_config
@@ -62,3 +62,12 @@ def set_headers(response):
     return response
         
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return make_response(jsonify({"message": "Page not found"}), 404)
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    response = make_response(jsonify({"message": "Internal server error"}), 500)
+    response.set_cookie('X-Identity', '', expires=0)
+    return response
