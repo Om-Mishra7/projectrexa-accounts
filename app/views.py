@@ -347,7 +347,7 @@ def account():
     
     user_info = mongoDB_cursor['users'].find_one({"user_id": session.user_id})
     sessions = get_active_sessions(session.user_id)
-    if user_info or sessions == []:
+    if user_info is None or sessions == []:
         response = make_response(redirect(url_for('routes.sign_in')), 302)
         response.set_cookie('X-Identity', '', httponly=True,
                             secure=True, samesite='Lax', expires=0)
