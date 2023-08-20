@@ -347,7 +347,11 @@ def account():
     
     user_info = mongoDB_cursor['users'].find_one({"user_id": session.user_id})
     sessions = get_active_sessions(session.user_id)
-    print(sessions)
+    if user_info or sessions == []:
+        response = make_response(redirect(url_for('routes.sign_in')), 302)
+        response.set_cookie('X-Identity', '', httponly=True,
+                            secure=True, samesite='Lax', expires=0)
+        return response
     return make_response(render_template('account.html', user_info=user_info, sessions = sessions, session_id = session.session_id), 200)
 
 @routes.route('/api/remove_session', methods=['POST'])
@@ -366,3 +370,5 @@ def remove_session():
         return make_response(jsonify({"message": "Session has been removed successfully"}), 200)
     except Exception as e:
         return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
+    
+
