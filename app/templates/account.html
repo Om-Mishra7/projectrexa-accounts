@@ -40,35 +40,63 @@
       <hr class="divider" />
 
       <h1>Active Sessions</h1>
-      {% for session in sessions %}
-      <div class="session">
-        <p>
-          Session ID -
-          <span class="special_text">{{session["session_id"]}}</span>
-        </p>
-        <p>
-          IP Address -
-          <span class="special_text">{{session["user_ip_address"]}}</span>
-        </p>
-        <p>
-          Location -
-          <span class="special_text"
-            >{{session["regionName"]}}, {{session["city"]}},
-            {{session["country"]}}</span
-          >
-        </p>
-        <p>
-          User Agent -
-          <span class="special_text">{{session["user_agent"]}}</span>
-        </p>
-        <p>
-          Created At -
-          <span class="special_text created_at">{{session["created_at"]}}</span>
-        </p>
-        <button class="logout_button"
-        data-logout-token="{{session["logout_token"]}}"> Logout
-      </div>
+      {% for session in sessions %} 
+        {% if session_id != session["session_id"] %}
+            <div class="session">
+                <p>
+                Session ID -
+                <span class="special_text">{{session["session_id"]}}</span>
+                </p>
+                <p>
+                IP Address -
+                <span class="special_text">{{session["user_ip_address"]}}</span>
+                </p>
+                <p>
+                Location -
+                <span class="special_text"
+                    >{{session["regionName"]}}, {{session["city"]}},
+                    {{session["country"]}}</span
+                >
+                </p>
+                <p>
+                User Agent -
+                <span class="special_text">{{session["user_agent"]}}</span>
+                </p>
+                <p>
+                Created At -
+                <span class="special_text created_at">{{session["created_at"]}}</span>
+                </p>
+                <button class="logout_button"
+                data-logout-token="{{session["logout_token"]}}"> Logout</button>
+            </div>
 
+        {% else %}
+            <div class="session current_session">
+                <p>
+                Session ID -
+                <span class="special_text">{{session["session_id"]}}</span>
+                </p>
+                <p>
+                IP Address -
+                <span class="special_text">{{session["user_ip_address"]}}</span>
+                </p>
+                <p>
+                Location -
+                <span class="special_text"
+                    >{{session["regionName"]}}, {{session["city"]}},
+                    {{session["country"]}}</span
+                >
+                </p>
+                <p>
+                User Agent -
+                <span class="special_text">{{session["user_agent"]}}</span>
+                </p>
+                <p>
+                Created At -
+                <span class="special_text created_at">{{session["created_at"]}}</span>
+                </p>
+            </div>
+        {% endif %} 
       {% endfor %}
 
       <br />

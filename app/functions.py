@@ -23,7 +23,8 @@ configuration.api_key['api-key'] = 'xkeysib-0ae05bc4a60f07f191b736acaaec5c2f2856
 
 
 class User:
-    def __init__(self, user_id, name, email, profile_picture, role, ip_address, status):
+    def __init__(self, session_id, user_id, name, email, profile_picture, role, ip_address, status):
+        self.session_id = session_id
         self.user_id = user_id
         self.name = name
         self.email = email
@@ -80,6 +81,7 @@ def verify_recaptcha(recaptcha_response):
 
 def generate_session(user, request):
     serializer = URLSafeSerializer(config.secret_key)
+    session_id = secrets.token_hex(16)
     session = {
         'logged_in': True,
         'user_id': user['user_id'],
@@ -90,10 +92,10 @@ def generate_session(user, request):
         'user_profile_picture': user['profile_picture'],
         'user_ip_address': request.remote_addr,
         'user_agent': request.user_agent.string,
-
+        'session_id': session_id
     }
 
-    session_id = secrets.token_hex(16)
+    
 
     location_info = requests.get(
         'http://ip-api.com/json/{}?fields=16409'.format(request.remote_addr)).json()
@@ -144,7 +146,7 @@ def get_session(request):
                     datetime.datetime.now(), e))
             return None
 
-        return User(session['user_id'], session['user_name'], session['user_email'], session['user_profile_picture'], session['user_role'], session['user_ip_address'], session['status'])
+        return User(session['session_id'], session['user_id'], session['user_name'], session['user_email'], session['user_profile_picture'], session['user_role'], session['user_ip_address'], session['status'])
     else:
         return None
 

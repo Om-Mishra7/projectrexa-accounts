@@ -46,12 +46,13 @@ main {
     gap: 10px;
 }
 
-.account_informtion h1 {
+ h1 {
     margin-bottom: 10px;
+    padding-left: 10px;
 }
 
 .account_informtion p{
-    padding-left: 5px;
+    padding-left: 20px;
 }
 
 .special_text {
@@ -65,8 +66,11 @@ main {
     align-items: baseline;
     justify-content: start;
     gap: 5px;
-    margin-bottom: 20px;
-    padding-left: 5px;
+    margin-bottom: 10px;
+    padding: 20px;
+    width: 100%;
+    background-color: hsl(0, 0%, 15%);
+    border-radius: 10px;
 }
 
 .logout_button {
@@ -85,4 +89,8 @@ main {
 
 .logout_button:hover {
     background-color: #d32f2f;
+}
+
+.current_session {
+    background-color: hsl(116, 46%, 15%);
 }

@@ -348,7 +348,7 @@ def account():
     user_info = mongoDB_cursor['users'].find_one({"user_id": session.user_id})
     sessions = get_active_sessions(session.user_id)
     print(sessions)
-    return make_response(render_template('account.html', user_info=user_info, sessions = sessions), 200)
+    return make_response(render_template('account.html', user_info=user_info, sessions = sessions, session_id = session.session_id), 200)
 
 @routes.route('/api/remove_session', methods=['POST'])
 def remove_session():
