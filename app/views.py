@@ -1,6 +1,6 @@
 from app.database import create_redis_database_connection, create_mongoDB_database_connection
 from app.config import get_config
-from app.functions import hash_password, verify_hashed_password, verify_recaptcha, generate_session, get_session, generate_user_id, generate_token, send_mail
+from app.functions import hash_password, verify_hashed_password, verify_recaptcha, generate_session, get_session, generate_user_id, generate_token, send_mail, get_active_sessions
 from flask import request, jsonify, make_response, Blueprint, render_template, redirect, url_for, send_from_directory, flash
 import secrets
 import requests
@@ -39,9 +39,7 @@ def index():
             session_id = serializer.loads(request.cookies.get('X-Identity'))
         except BadSignature:
             return redirect(url_for('routes.sign_in'))
-        session_info = mongoDB_cursor['sessions'].find_one(
-            {"session_id": session_id})
-        return make_response(({"user_info": session.get_user_info("json"), "session_info": {"ip_address": session_info['user_ip_address'], "user_agent": session_info['user_agent'], "country": session_info['country'], "city": session_info['city'], "region": session_info['regionName']}}), 200)
+        return make_response(redirect(url_for('routes.account')), 302)
     except Exception as e:
         print(e)
         return make_response(jsonify({"message": "We are experiencing some issues, please try again later"}), 500)
@@ -117,7 +115,6 @@ def signup():
             email = request_data['email']
             password = request_data['password']
 
-            print(username, email, password)
 
             if email is None or password is None or username is None:
                 return make_response(jsonify({"message": "Email / Password / Username is missing"}), 400)
@@ -126,7 +123,7 @@ def signup():
                 return make_response(jsonify({"message": "This email is already registered"}), 400)
 
             mongoDB_cursor['users'].insert_one(
-                {"email": email, "password": hash_password(password), "method": "email", "user_id": generate_user_id(), "verified": False, "name": username, "profile_picture": "https://source.boringavatars.com/beam/100", "role": "user", "status": "active", "created_at": datetime.datetime.utcnow(), "last_login": datetime.datetime.utcnow()})
+                {"email": email, "password": hash_password(password), "method": "email", "user_id": generate_user_id(), "verified": False, "name": username.title(), "profile_picture": "https://source.boringavatars.com/beam/100", "role": "user", "status": "active", "created_at": datetime.datetime.utcnow(), "last_login": datetime.datetime.utcnow()})
 
             user = mongoDB_cursor['users'].find_one({"email": email})
 
@@ -212,7 +209,7 @@ def github_callback():
 
         if user_private is None:
             mongoDB_cursor['users'].insert_one({"user_id": generate_user_id(), "email": user_data['email'], "method": "github", "name": user_data[
-                                               'name'], "profile_picture": user_data['avatar_url'], "role": "user", "last_login": datetime.datetime.utcnow(), "created_at": datetime.datetime.utcnow(), "status": "active"})
+                                               'name'].title(), "profile_picture": user_data['avatar_url'], "role": "user", "last_login": datetime.datetime.utcnow(), "created_at": datetime.datetime.utcnow(), "status": "active"})
             user_private = mongoDB_cursor['users'].find_one(
                 {"email": user_data['email']})
         else:
@@ -279,7 +276,7 @@ def google_callback():
 
         if user_private is None:
             mongoDB_cursor['users'].insert_one({"user_id": generate_user_id(), "email": user_data['email'], "method": "google", "name": user_data[
-                                               'name'], "profile_picture": user_data['picture'], "role": "user", "last_login": datetime.datetime.utcnow(), "created_at": datetime.datetime.utcnow(), "status": "active"})
+                                               'name'].title(), "profile_picture": user_data['picture'], "role": "user", "last_login": datetime.datetime.utcnow(), "created_at": datetime.datetime.utcnow(), "status": "active"})
             user_private = mongoDB_cursor['users'].find_one(
                 {"email": user_data['email']})
         else:
@@ -339,4 +336,33 @@ def verify_email():
 
     except Exception as e:
         print(e)
+        return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
+
+
+@routes.route('/account')
+def account():
+    session = get_session(request)
+    if session is None or not session.is_authenticated():
+        return redirect(url_for('routes.sign_in'), 302)
+    
+    user_info = mongoDB_cursor['users'].find_one({"user_id": session.user_id})
+    sessions = get_active_sessions(session.user_id)
+    print(sessions)
+    return make_response(render_template('account.html', user_info=user_info, sessions = sessions), 200)
+
+@routes.route('/api/remove_session', methods=['POST'])
+def remove_session():
+    session = get_session(request)
+    if session is None or not session.is_authenticated():
+        return make_response(jsonify({"message": "You are not authenticated"}), 401)
+    try:
+        request_data = request.get_json()
+        logout_token = request_data['logout_token']
+        if logout_token is None:
+            return make_response(jsonify({"message": "Logout token is missing"}), 400)
+        Serializer = URLSafeSerializer(config.secret_key)
+        logout_token = Serializer.loads(logout_token)
+        redis_client.delete(logout_token)
+        return make_response(jsonify({"message": "Session has been removed successfully"}), 200)
+    except Exception as e:
         return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)

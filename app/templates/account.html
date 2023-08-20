@@ -1,0 +1,77 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account | ProjectRexa</title>
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/account.css" />
+    <script src="/static/js/account.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <img id="profile_picture" class="profile_picture"
+      src="//wsrv.nl/?url={{user_info["profile_picture"]}}&height=150&width=150"
+      alt="{{user_info["name"]}} Profile Picture">
+      <p id="user_name" class="user_name">
+        Welcome, {{user_info["name"].title()}}
+      </p>
+
+      <hr class="divider" />
+
+      <div class="account_informtion">
+        <h1>Account Information</h1>
+
+        <p id="user_email">
+          Registered Email -
+          <span class="special_text">{{user_info["email"]}}</span>
+        </p>
+        <p id="user_id">
+          User ID - <span class="special_text">{{user_info["user_id"]}}</span>
+        </p>
+        <p id="member_since">
+          Member Since -
+          <span class="special_text created_at"
+            >{{user_info["created_at"]}}</span
+          >
+        </p>
+      </div>
+
+      <hr class="divider" />
+
+      <h1>Active Sessions</h1>
+      {% for session in sessions %}
+      <div class="session">
+        <p>
+          Session ID -
+          <span class="special_text">{{session["session_id"]}}</span>
+        </p>
+        <p>
+          IP Address -
+          <span class="special_text">{{session["user_ip_address"]}}</span>
+        </p>
+        <p>
+          Location -
+          <span class="special_text"
+            >{{session["regionName"]}}, {{session["city"]}},
+            {{session["country"]}}</span
+          >
+        </p>
+        <p>
+          User Agent -
+          <span class="special_text">{{session["user_agent"]}}</span>
+        </p>
+        <p>
+          Created At -
+          <span class="special_text created_at">{{session["created_at"]}}</span>
+        </p>
+        <button class="logout_button"
+        data-logout-token="{{session["logout_token"]}}"> Logout
+      </div>
+
+      {% endfor %}
+
+      <br />
+    </main>
+  </body>
+</html>

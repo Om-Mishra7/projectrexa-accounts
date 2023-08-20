@@ -170,6 +170,18 @@ def generate_token(user, scope):
     return (serializer.dumps(token))
 
 
+def get_active_sessions(user_id):
+    Serializer = URLSafeSerializer(config.secret_key)
+    sessions = []
+    for session in mongoDB_cursor['sessions'].find({"user_id": user_id}):
+        if redis_client.get(session['session_id']) is not None:
+            session = {**session, **{"logout_token": Serializer.dumps(session['session_id'])}}
+            sessions.append(session)
+        else:
+            mongoDB_cursor['sessions'].delete_one({"session_id": session['session_id']})
+    return sessions
+
+
 def send_mail(user, token, type):
     api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
         sib_api_v3_sdk.ApiClient(configuration))
