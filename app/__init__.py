@@ -62,6 +62,10 @@ def set_headers(response):
     return response
         
 
+@app.route('/version')
+def version():
+    return jsonify({"version": "1.0.0"})
+
 @app.errorhandler(404)
 def page_not_found(e):
     return make_response(jsonify({"message": "Page not found"}), 404)
