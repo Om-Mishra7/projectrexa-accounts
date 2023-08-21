@@ -55,7 +55,7 @@ def sign_in():
         # Initial login checks
         try:
             request_data = request.get_json()
-            email = request_data['email']
+            email = request_data['email'].lower()
             password = request_data['password']
 
             if email is None or password is None:
@@ -111,13 +111,22 @@ def signup():
 
             request_data = request.get_json()
 
-            username = request_data['username']
-            email = request_data['email']
+            username = request_data['username'].title()
+            email = request_data['email'].lower()
             password = request_data['password']
 
 
             if email is None or password is None or username is None:
                 return make_response(jsonify({"message": "Email / Password / Username is missing"}), 400)
+            
+            if config.recaptcha:
+                recaptcha_response = request_data['recaptcha_response']
+
+                if recaptcha_response is None:
+                    return make_response(jsonify({"message": "Recaptcha is missing, please try again"}), 400)
+
+                if not verify_recaptcha(recaptcha_response):
+                    return make_response(jsonify({"message": "Recaptcha is invalid, please try again"}), 400)
 
             if mongoDB_cursor['users'].find_one({"email": email}) is not None:
                 return make_response(jsonify({"message": "This email is already registered"}), 400)

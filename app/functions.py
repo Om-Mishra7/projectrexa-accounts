@@ -74,7 +74,7 @@ def verify_recaptcha(recaptcha_response):
     response = requests.post(
         "https://www.google.com/recaptcha/api/siteverify", payload)
     response_text = json.loads(response.text)
-    if response_text['success'] == True:
+    if response_text['success'] == True and response_text['score'] >= 0.5:
         return True
     return False
 
