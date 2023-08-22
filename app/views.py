@@ -138,6 +138,7 @@ def signup():
 
             token = generate_token(user, 'verify_email')
             send_mail(user, token, 'verify_email')
+            flash("Account has been created successfully, please check your inbox to verify your email")
             return make_response(jsonify({"message": "The account has been created successfully, please check your inbox to verify your email"}), 200)
 
     except Exception as e:
@@ -340,8 +341,9 @@ def verify_email():
                                             "$set": {"verified": True}})
         mongoDB_cursor['tokens'].delete_one(
             {"token": token, "scope": "verify_email"})
-
-        return make_response(jsonify({"message": "Email has been verified successfully"}), 200)
+        
+        flash = "Email has been verified successfully, you can now login"
+        return make_response(redirect(url_for('routes.sign_in')), 302)
 
     except Exception as e:
         print(e)
@@ -380,4 +382,37 @@ def remove_session():
     except Exception as e:
         return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
     
+
+@routes.route('/resend-verification', methods=['GET','POST'])
+def resend_verification():
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
+        return make_response(redirect(url_for('routes.index')), 302)
+    try:
+        if request.method == 'POST':
+            request_data = request.get_json()
+            email = request_data['email']
+            if verify_recaptcha(request_data['recaptcha_response']):
+                if email is None:
+                    return make_response(jsonify({"message": "Please enter an valid email"}), 400)
+                user_info = mongoDB_cursor['users'].find_one({"email": email})
+                if user_info is None:
+                    return make_response(jsonify({"message": "This email is not registered"}), 400)
+                if user_info['method'] != 'email':
+                    return make_response(jsonify({"message": "This email has already been verified"}), 400)
+                if user_info['verified'] == True:
+                    return make_response(jsonify({"message": "This email has already been verified"}), 400)
+                if user_info['status'] == 'suspended':
+                    return make_response(jsonify({"message": "Account is suspended, please contact support"}), 400)
+                mongoDB_cursor['tokens'].delete_many({"user_id": user_info['user_id'], "scope": "verify_email"})
+                token = generate_token(user_info, 'verify_email')
+                send_mail(user_info, token, 'verify_email')
+                flash("Verification email has been sent successfully")
+                return make_response(jsonify({"message": "Verification email has been sent successfully"}), 200)
+            else:
+                return make_response(jsonify({"message": "Recaptcha is invalid, please try again"}), 400)
+    except Exception as e:
+        print(e)
+        return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
+    return make_response(render_template('resend_verification.html'), 200)
 

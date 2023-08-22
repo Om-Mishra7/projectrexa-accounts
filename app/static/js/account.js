@@ -11,6 +11,8 @@ for (let i = 0; i < logout_button.length; i++) {
 
     logout_button[i].addEventListener('click', () => {
         const logout_token = logout_button[i].getAttribute('data-logout-token');
+        logout_button[i].innerHTML = 'Logging out...';
+        logout_button[i].disabled = true;
         fetch('/api/remove_session', {
             method: 'POST',
             headers: {
@@ -20,6 +22,10 @@ for (let i = 0; i < logout_button.length; i++) {
         }).then((response) => {
             if (response.status === 200) {
                 logout_button[i].parentNode.remove();
+            }
+            else {
+                logout_button[i].innerHTML = 'Logout';
+                logout_button[i].disabled = false;
             }
         });
     });

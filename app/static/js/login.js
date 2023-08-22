@@ -8,15 +8,13 @@ function submitForm() {
 
     if (email === "" || password === "") {
       const errorText = document.getElementById("error-text");
-      errorText.innerHTML = "Email / Password is missing"
+      errorText.innerHTML = "Email / Password is missing";
       loginButton.disabled = false;
       loginButton.innerHTML = "Sign in";
       return;
-    }
-
-    else if (!email.includes("@") || !email.includes(".")) {
+    } else if (!email.includes("@") || !email.includes(".")) {
       const errorText = document.getElementById("error-text");
-      errorText.innerHTML = "Enter a valid email address"
+      errorText.innerHTML = "Enter a valid email address";
       loginButton.disabled = false;
       loginButton.innerHTML = "Sign in";
       return;
@@ -38,10 +36,10 @@ function submitForm() {
             window.location.href = "/";
           } else {
             response.json().then(function (data) {
-                const errorText = document.getElementById("error-text");
-                errorText.innerHTML = data.message;
-                loginButton.disabled = false;
-                loginButton.innerHTML = "Sign in";
+              const errorText = document.getElementById("error-text");
+              errorText.innerHTML = data.message;
+              loginButton.disabled = false;
+              loginButton.innerHTML = "Sign in";
             });
           }
         });
