@@ -137,8 +137,6 @@ def get_session(request):
             return None
         try:
             session = json.loads(redis_client.get(session_id))
-            if session['user_ip_address'] != request.remote_addr:
-                return None
 
         except Exception as e:
             with open('log.log', 'a') as f:
