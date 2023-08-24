@@ -1,6 +1,6 @@
 from app.database import create_redis_database_connection, create_mongoDB_database_connection
 from app.config import get_config
-from app.functions import hash_password, verify_hashed_password, verify_recaptcha, generate_session, get_session, generate_user_id, generate_token, send_mail, get_active_sessions
+from app.functions import hash_password, verify_hashed_password, verify_recaptcha, generate_session, get_session, generate_user_id, generate_token, send_mail, get_active_sessions, deleter_all_sessions
 from flask import request, jsonify, make_response, Blueprint, render_template, redirect, url_for, send_from_directory, flash
 import secrets
 import requests
@@ -483,8 +483,12 @@ def reset_password():
             return make_response(jsonify({"message": "This email is not verified, please check your inbox or request a new verification email"}), 400)
         if user_info['status'] == 'suspended':
             return make_response(jsonify({"message": "Account is suspended, please contact support"}), 400)
+        if get_session(request) is not None and get_session(request).user_id != user_info['user_id']:
+            return make_response(jsonify({"message": "You are trying to reset password for another account"}), 400)
         if verify_hashed_password(password, user_info['password']):
             return make_response(jsonify({"message": "New password cannot be the same as the old one"}), 400)
+        if not deleter_all_sessions(user_info['user_id']):
+            return make_response(jsonify({"message": "Unable to delete sessions, please try again later"}), 500)
         mongoDB_cursor['users'].update_one({"user_id": token_info['user_id']}, {
             "$set": {"password": hash_password(password)}})
         mongoDB_cursor['tokens'].delete_many(

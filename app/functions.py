@@ -181,6 +181,12 @@ def get_active_sessions(user_id):
             mongoDB_cursor['sessions'].delete_one({"session_id": session['session_id']})
     return sessions
 
+def deleter_all_sessions(user_id):
+    for session in mongoDB_cursor['sessions'].find({"user_id": user_id}):
+        redis_client.delete(session['session_id'])
+        mongoDB_cursor['sessions'].delete_one({"session_id": session['session_id']})
+    return True
+
 
 def send_mail(user, token, type):
     api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
