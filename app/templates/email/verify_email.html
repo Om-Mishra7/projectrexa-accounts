@@ -5,21 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Forgot Password" />
   </head>
-  <body style="margin: 30; font-family: Arial, Helvetica, sans-serif; color: #030302; text-align: left;font-weight: 400;">
-
+  <body
+    style="
+      margin: 30;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #030302;
+      text-align: left;
+      font-weight: 400;
+    "
+  >
     <br />
     <div>
-      <p>Hi <span style="color: hsl(240, 100%, 42%); font-weight: bold;">{{ name }}</span>,</p>
+      <p>Hi <span style="font-weight: bold">{{ name }}</span>,</p>
       <br />
       <p>
-        Thank you for signing up to ProjectRexa, please click the
-        button below to verify your account. This link will expire in 6 hours.
+        Thank you for signing up to ProjectRexa, please click the button below
+        to verify your account. This link will expire in 6 hours.
       </p>
       <br />
-      <p style="margin-left: 10px;">
-        <a style="color: hsl(240, 100%, 42%); text-decoration: none; font-size: 1rem;" href="{{ link }}">
-          <button style="background-color: hsl(240, 100%, 42%); color: #fafcf8; border: none; border-radius: 5px; padding: 10px 20px; font-size: 1rem; cursor: pointer;">
-            Verify Account</button>
+      <p style="margin-left: 10px">
+        <a style="text-decoration: none; font-size: 1rem" href="{{ link }}">
+          <button
+            style="
+              color: #fafcf8;
+              border: none;
+              border-radius: 5px;
+              padding: 10px 20px;
+              font-size: 1rem;
+              cursor: pointer;
+            "
+          >
+            Verify Account
+          </button>
         </a>
       </p>
 
@@ -28,18 +45,17 @@
         If the button above does not work, please copy and paste the link below
         into your browser.
       </p>
-      <p style="padding: 10px;">
-        <a style="color: hsl(240, 100%, 42%); text-decoration: none; font-size: 1rem;" href="{{ link }}">{{ link }}</a>
+      <p style="padding: 10px">
+        <a style="text-decoration: none; font-size: 1rem" href="{{ link }}"
+          >{{ link }}</a
+        >
       </p>
-      <p>
-        If you didn't sign up for ProjectRexa, please ignore this email.
-      </p>
+      <p>If you didn't sign up for ProjectRexa, please ignore this email.</p>
       <p>Regards,</p>
       <p>Hermes Bot | ProjectRexa</p>
 
       <br />
       <br />
-
     </div>
   </body>
 </html>

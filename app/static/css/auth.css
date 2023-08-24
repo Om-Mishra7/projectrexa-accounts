@@ -24,7 +24,7 @@ main {
 }
 
 
-.login_container {
+.main_container {
     position: relative;
     background-color: var(--main);
     display: flex;
@@ -173,4 +173,13 @@ p {
     text-align: center;
     text-transform: uppercase;
     text-decoration: underline;
+}
+
+ul {
+    list-style: square;
+    padding-left: 20px;
+
+    font-size: 0.8rem;
+    color: var(--accent);
+
 }

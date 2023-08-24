@@ -115,10 +115,9 @@ def signup():
             email = request_data['email'].lower()
             password = request_data['password']
 
-
             if email is None or password is None or username is None:
                 return make_response(jsonify({"message": "Email / Password / Username is missing"}), 400)
-            
+
             if config.recaptcha:
                 recaptcha_response = request_data['recaptcha_response']
 
@@ -138,7 +137,8 @@ def signup():
 
             token = generate_token(user, 'verify_email')
             send_mail(user, token, 'verify_email')
-            flash("Account has been created successfully, please check your inbox to verify your email")
+            flash(
+                "Account has been created successfully, please check your inbox to verify your email")
             return make_response(jsonify({"message": "The account has been created successfully, please check your inbox to verify your email"}), 200)
 
     except Exception as e:
@@ -338,10 +338,10 @@ def verify_email():
             return make_response(jsonify({"message": "Email has already been verified"}), 400)
 
         mongoDB_cursor['users'].update_one({"user_id": token_info['user_id']}, {
-                                            "$set": {"verified": True}})
+            "$set": {"verified": True}})
         mongoDB_cursor['tokens'].delete_one(
             {"token": token, "scope": "verify_email"})
-        
+
         flash = "Email has been verified successfully, you can now login"
         return make_response(redirect(url_for('routes.sign_in')), 302)
 
@@ -355,7 +355,7 @@ def account():
     session = get_session(request)
     if session is None or not session.is_authenticated():
         return redirect(url_for('routes.sign_in'), 302)
-    
+
     user_info = mongoDB_cursor['users'].find_one({"user_id": session.user_id})
     sessions = get_active_sessions(session.user_id)
     if user_info is None or sessions == []:
@@ -363,27 +363,10 @@ def account():
         response.set_cookie('X-Identity', '', httponly=True,
                             secure=True, samesite='Lax', expires=0)
         return response
-    return make_response(render_template('account.html', user_info=user_info, sessions = sessions, session_id = session.session_id), 200)
+    return make_response(render_template('account.html', user_info=user_info, sessions=sessions, session_id=session.session_id), 200)
 
-@routes.route('/api/remove_session', methods=['POST'])
-def remove_session():
-    session = get_session(request)
-    if session is None or not session.is_authenticated():
-        return make_response(jsonify({"message": "You are not authenticated"}), 401)
-    try:
-        request_data = request.get_json()
-        logout_token = request_data['logout_token']
-        if logout_token is None:
-            return make_response(jsonify({"message": "Logout token is missing"}), 400)
-        Serializer = URLSafeSerializer(config.secret_key)
-        logout_token = Serializer.loads(logout_token)
-        redis_client.delete(logout_token)
-        return make_response(jsonify({"message": "Session has been removed successfully"}), 200)
-    except Exception as e:
-        return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
-    
 
-@routes.route('/resend-verification', methods=['GET','POST'])
+@routes.route('/resend-verification', methods=['GET', 'POST'])
 def resend_verification():
     session = get_session(request)
     if session is not None and session.is_authenticated():
@@ -404,9 +387,11 @@ def resend_verification():
                     return make_response(jsonify({"message": "This email has already been verified"}), 400)
                 if user_info['status'] == 'suspended':
                     return make_response(jsonify({"message": "Account is suspended, please contact support"}), 400)
-                mongoDB_cursor['tokens'].delete_many({"user_id": user_info['user_id'], "scope": "verify_email"})
+                mongoDB_cursor['tokens'].delete_many(
+                    {"user_id": user_info['user_id'], "scope": "verify_email"})
                 token = generate_token(user_info, 'verify_email')
-                send_mail(user_info, token, 'verify_email')
+                if not send_mail(user_info, token, 'verify_email'):
+                    return make_response(jsonify({"message": "Unable to send email, please try again later"}), 500)
                 flash("Verification email has been sent successfully")
                 return make_response(jsonify({"message": "Verification email has been sent successfully"}), 200)
             else:
@@ -416,3 +401,95 @@ def resend_verification():
         return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
     return make_response(render_template('resend_verification.html'), 200)
 
+
+@routes.route('/api/remove_session', methods=['POST'])
+def remove_session():
+    session = get_session(request)
+    if session is None or not session.is_authenticated():
+        return make_response(jsonify({"message": "You are not authenticated"}), 401)
+    try:
+        request_data = request.get_json()
+        logout_token = request_data['logout_token']
+        if logout_token is None:
+            return make_response(jsonify({"message": "Logout token is missing"}), 400)
+        Serializer = URLSafeSerializer(config.secret_key)
+        logout_token = Serializer.loads(logout_token)
+        redis_client.delete(logout_token)
+        return make_response(jsonify({"message": "Session has been removed successfully"}), 200)
+    except Exception as e:
+        return make_response(jsonify({"message": "Invalid Request, please try again"}), 400)
+
+
+@routes.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    session = get_session(request)
+    if session is not None and session.is_authenticated():
+        return redirect(url_for('routes.index'), 302)
+    if request.method == 'POST':
+        request_data = request.get_json()
+        email = request_data['email']
+        if not verify_recaptcha(request_data['recaptcha_response']):
+            return make_response(jsonify({"message": "Recaptcha is invalid, please try again"}), 400)
+        if email is None:
+            return make_response(jsonify({"message": "Please enter an valid email"}), 400)
+        user_info = mongoDB_cursor['users'].find_one({"email": email})
+        if user_info is None:
+            return make_response(jsonify({"message": "This email is not registered"}), 400)
+        if user_info['method'] != 'email':
+            return make_response(jsonify({"message": "This email was registered with a social method"}), 400)
+        if user_info['verified'] == False:
+            return make_response(jsonify({"message": "This email is not verified, please check your inbox or request a new verification email"}), 400)
+        if user_info['status'] == 'suspended':
+            return make_response(jsonify({"message": "Account is suspended, please contact support"}), 400)
+        mongoDB_cursor['tokens'].delete_many(
+            {"user_id": user_info['user_id'], "scope": "reset_password"})
+        token = generate_token(user_info, 'reset_password')
+        if not send_mail(user_info, token, 'forgot_password'):
+            return make_response(jsonify({"message": "Unable to send email, please try again later"}), 500)
+        flash("Password reset email has been sent successfully")
+        return make_response(jsonify({"message": "Password reset email has been sent successfully"}), 200)
+    return make_response(render_template('forgot_password.html'), 200)
+
+
+@routes.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    if request.method == 'POST':
+        request_data = request.get_json()
+        token = request_data['token']
+        password = request_data['password']
+
+        if token is None or password is None:
+            return make_response(jsonify({"message": "Token / Password is missing"}), 400)
+        if not verify_recaptcha(request_data['recaptcha_response']):
+            return make_response(jsonify({"message": "Recaptcha is invalid, please try again"}), 400)
+        Serializer = URLSafeSerializer(config.secret_key)
+        token = Serializer.loads(token)
+        print(token)
+
+        token_info = mongoDB_cursor['tokens'].find_one(
+            {"token": token, "scope": "reset_password"})
+        print(token_info)
+        if token_info is None:
+            return make_response(jsonify({"message": "Invalid Token, please try again"}), 400)
+        if token_info['expires_at'] < datetime.datetime.utcnow():
+            return make_response(jsonify({"message": "Token has expired, please request a new one"}), 400)
+        user_info = mongoDB_cursor['users'].find_one(
+            {"user_id": token_info['user_id']})
+        if user_info is None:
+            return make_response(jsonify({"message": "Invalid Token, please try again"}), 400)
+        if user_info['method'] != 'email':
+            return make_response(jsonify({"message": "This email was registered with a social method"}), 400)
+        if user_info['verified'] == False:
+            return make_response(jsonify({"message": "This email is not verified, please check your inbox or request a new verification email"}), 400)
+        if user_info['status'] == 'suspended':
+            return make_response(jsonify({"message": "Account is suspended, please contact support"}), 400)
+        if verify_hashed_password(password, user_info['password']):
+            return make_response(jsonify({"message": "New password cannot be the same as the old one"}), 400)
+        mongoDB_cursor['users'].update_one({"user_id": token_info['user_id']}, {
+            "$set": {"password": hash_password(password)}})
+        mongoDB_cursor['tokens'].delete_many(
+            {"user_id": user_info['user_id'], "scope": "reset_password"})
+        flash("Password has been reset successfully, you can now login")
+        return make_response(jsonify({"message": "Password has been reset successfully, you can now login"}), 200)
+    token = request.args.get('token')
+    return make_response(render_template('reset_password.html', token=token), 200)
