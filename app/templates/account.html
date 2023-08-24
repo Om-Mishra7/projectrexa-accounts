@@ -66,7 +66,7 @@
                 Created At -
                 <span class="special_text created_at">{{session["created_at"]}}</span>
                 </p>
-                <button class="logout_button"
+                <button onclick="remove_session(this)" class="logout_button
                 data-logout-token="{{session["logout_token"]}}"> Logout</button>
             </div>
 
@@ -101,5 +101,9 @@
 
       <br />
     </main>
+    <div class="logout-container">
+    <button onclick="location.href = '/sign-out'" class="logout_button main">Sign Out</button>
+  </div>
+    <br>
   </body>
 </html>

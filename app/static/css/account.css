@@ -75,7 +75,8 @@ main {
 
 .logout_button {
     margin-top: 10px;
-    width: 80px;
+    width: max-content;
+    padding: 0 20px;
     height: 35px;
     border: none;
     border-radius: 5px;
@@ -85,6 +86,18 @@ main {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease-in-out;
+}
+
+.logout-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.logout_button.main {
+    text-align: center;
+    width: 50%;
 }
 
 .logout_button:hover {
