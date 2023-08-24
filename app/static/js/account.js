@@ -4,10 +4,12 @@ for (let i = 0; i < created_at.length; i++) {
     let date = new Date(created_at[i].innerHTML);
     created_at[i].innerHTML = date.toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric' });
 }
-function remove_session(this) {
-    this.innerHTML = 'Logging out...';
-    this.disabled = true;
-    const logout_token = this.getAttribute('data-logout-token');
+
+function remove_session(logout_token) {
+    const logout_button = document.querySelectorAll(`button[data-logout-token="${logout_token}"]`)[0];
+
+    logout_button.innerHTML = 'Logging out...';
+    logout_button.disabled = true;
     fetch('/api/remove_session', {
         method: 'POST',
         headers: {
@@ -16,11 +18,11 @@ function remove_session(this) {
         , body: JSON.stringify({ logout_token: logout_token })
     }).then((response) => {
         if (response.status === 200) {
-            this.parentNode.remove();
+            logout_button.parentNode.remove();
         }
         else {
-            this.innerHTML = 'Logout';
-            this.disabled = false;
+            logout_button.innerHTML = 'Logout';
+            logout_button.disabled = false;
         }
     }
     );
