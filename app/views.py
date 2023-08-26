@@ -453,6 +453,7 @@ def forgot_password():
 
 @routes.route('/reset-password', methods=['GET', 'POST'])
 def reset_password():
+    Serializer = URLSafeSerializer(config.secret_key)
     if request.method == 'POST':
         request_data = request.get_json()
         token = request_data['token']
@@ -462,13 +463,9 @@ def reset_password():
             return make_response(jsonify({"message": "Token / Password is missing"}), 400)
         if not verify_recaptcha(request_data['recaptcha_response']):
             return make_response(jsonify({"message": "Recaptcha is invalid, please try again"}), 400)
-        Serializer = URLSafeSerializer(config.secret_key)
         token = Serializer.loads(token)
-        print(token)
-
         token_info = mongoDB_cursor['tokens'].find_one(
             {"token": token, "scope": "reset_password"})
-        print(token_info)
         if token_info is None:
             return make_response(jsonify({"message": "Invalid Token, please try again"}), 400)
         if token_info['expires_at'] < datetime.datetime.utcnow():
@@ -496,4 +493,11 @@ def reset_password():
         flash("Password has been reset successfully, you can now login")
         return make_response(jsonify({"message": "Password has been reset successfully, you can now login"}), 200)
     token = request.args.get('token')
+    if token is None:
+        return make_response(redirect(url_for('routes.index')), 302)
+    try:
+        token = Serializer.loads(token)
+    except BadSignature:
+        flash("Invalid Token, please try again")
+        return make_response(redirect(url_for('routes.index')), 302)
     return make_response(render_template('reset_password.html', token=token), 200)
