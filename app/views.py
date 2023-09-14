@@ -192,13 +192,13 @@ def github_callback():
 
         try:
             if str(state) != str(redis_client.get(request.cookies.get('X-GitHub-State'))):
-                flash("The url was tampered with, please try again")
+                flash("The request has timed out, please try again")
                 return make_response(redirect(url_for('routes.sign_in')), 302)
 
             redis_client.delete(request.cookies.get('X-GitHub-State'))
 
         except Exception as e:
-            flash("The url was tampered with, please try again")
+            flash("The request has timed out, please try again")
             return make_response(redirect(url_for('routes.sign_in')), 302)
 
         response = requests.post('https://github.com/login/oauth/access_token?client_id={}&client_secret={}&code={}&redirect_uri={}'.format(
@@ -266,13 +266,13 @@ def google_callback():
 
         try:
             if str(state) != str(redis_client.get(request.cookies.get('X-Google-State'))):
-                flash("The url was tampered with, please try again")
+                flash("The request has timed out, please try again")
                 return make_response(redirect(url_for('routes.sign_in')), 302)
 
             redis_client.delete(request.cookies.get('X-Google-State'))
 
         except Exception as e:
-            flash("The url was tampered with, please try again")
+            flash("The request has timed out, please try again")
             return make_response(redirect(url_for('routes.sign_in')), 302)
 
         response = requests.post('https://oauth2.googleapis.com/token?code={}&client_id=638350246071-dsj9thj6g6m1rjvh9krautaqbjh00ini.apps.googleusercontent.com&client_secret={}&redirect_uri={}&grant_type=authorization_code'.format(
