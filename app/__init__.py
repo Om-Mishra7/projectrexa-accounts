@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response, redirect, url_for
+from flask import Flask, request, make_response, redirect, url_for, jsonify
 from app.database import create_redis_database_connection, create_mongoDB_database_connection
 from app.views import routes
 from app.config import get_config
@@ -21,6 +21,7 @@ sentry_sdk.init(
 app = Flask(__name__)
 redis_client, mongoDB_client = create_redis_database_connection(), create_mongoDB_database_connection()
 
+app.config['SECRET_KEY'] = config.secret_key
 
 app.register_blueprint(routes)
 
@@ -57,10 +58,20 @@ def set_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'no-referrer'
     response.headers['X-Powered-By'] = 'Cerberus'
-    response.headers['Cache-Control'] = 'private, max-age=86400,'
-    if request.path.replace('/', '') in ['sign-in', 'sign-up', 'sign-out', 'reset-password', 'forgot-password', 'verify-email', 'oauthgithub','callbackgithub', 'oauthgoogle', 'callbackgoogle', 'oauthfacebook', 'callbackfacebook']:
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Permissions-Policy'] = 'interest-cohort=()'
     return response
         
 
+@app.route('/version')
+def version():
+    return jsonify({"version": "1.0.0"})
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return make_response(jsonify({"message": "Page not found"}), 404)
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    response = make_response(jsonify({"message": "Internal server error"}), 500)
+    response.set_cookie('X-Identity', '', expires=0)
+    return response

@@ -3,37 +3,37 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Reset | ProjectRexa</title>
+    <title>Resend Verification | ProjectRexa</title>
     <link rel="stylesheet" href="/static/css/base.css" />
     <link rel="stylesheet" href="/static/css/auth.css" />
-    <script src="/static/js/password_reset.js" defer></script>
+    <script src="/static/js/resend_verification.js" defer></script>
     <script src="https://www.google.com/recaptcha/api.js?render=6LdINlonAAAAAK5yArQKUqdHU7sIM8lWD_t_ttOU" defer></script>
 </head>
 <body>
     <script>
         function onSubmit(token) {
-          document.getElementById("password-reset-form").submit();
+          document.getElementById("resend-verification-form").submit();
         }
       </script>
       <main>
         <div class="main_container">
-          <h1>Password Reset</h1>
+          <h1>Resend verification</h1>
           <br>
           <p>Please read the instructions below carefully, before continuing.</p>
             <p>
-                1. If you have forgotten your password, you can reset it by entering your email address below. 
-                You will receive an email with a link to reset your password. 
-                If you do not receive an email, please check your spam folder.
+                1. If you have not received a verification email, please check your spam
+                folder. If you still cannot find the email, please enter your email
+                address below and click the "Send email" button.
             </p>
             <p>
-                2. If you have not received an email, please check your spam folder. 
-                If you still have not received an email, please contact us at <a href="mailto:contact@projectrexa.dedyn.io">contact@projectrexa.dedyn.io</a>
+                2. If you have received a verification email, please click the button in the
+                email to verify your account.
             </p>
             <p>
-                3. Do not try to keep sending password reset emails, doing so may result in your account being suspended.
+                3. An email will be sent to your email address with a link to verify your
+                account. Please click the link in the email to verify your account.
             </p>
-            <p>
-                4. If you have received a password reset email, please click the button in the email to reset your password.
+            <p>4. Do not try to keep sending verification emails, in case you do not receive an email, please contact us at <a href="mailto:contact@projectrexa.dedyn.io">contact@projectrexa.dedyn.io</a>. Repeated attempts at sending re-verification email may result in your account being suspended.
             </p>
 
             <br>
@@ -50,7 +50,7 @@
               &nbsp;
             </p>
           </div>
-          <form action="/forgot-password" method="post" id="password-reset-form">
+          <form action="/resend-verification" method="post" id="resend-verification-form">
             <input
               type="email"
               name="email"
@@ -61,7 +61,7 @@
             <br />
             <button
               onclick="event.preventDefault();submitForm();"
-              id = "password-reset-button"
+              id = "resend-verification-button"
             >
                 Send email
             </button>

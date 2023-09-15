@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://www.google.com" />
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
     <link rel="stylesheet" href="/static/css/base.css" />
-    <link rel="stylesheet" href="/static/css/sign_in.css" />
+    <link rel="stylesheet" href="/static/css/auth.css" />
     <script src="/static/js/login.js" defer></script>
     <script src="https://www.google.com/recaptcha/api.js?render=6LdINlonAAAAAK5yArQKUqdHU7sIM8lWD_t_ttOU" defer></script>
   </head>
@@ -19,7 +19,7 @@
       }
     </script>
     <main>
-      <div class="login_container">
+      <div class="main_container">
         <h1>Sign in to projectrexa</h1>
         <div class="social_login">
           <p class="smaller_text">Continue with one of the following options</p>
@@ -35,6 +35,14 @@
         </div>
         <div class="error">
           <p id="error-text" class="danger">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                {{ message }}</li>
+              {% endfor %}
+              </ul>
+            {% endif %}
+          {% endwith %}         
             &nbsp;
           </p>
         </div>

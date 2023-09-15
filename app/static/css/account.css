@@ -1,0 +1,109 @@
+main {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    justify-content: start;
+    gap: 20px;
+}
+
+.profile_picture {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    margin: 0 auto;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease-in-out;
+}
+
+.profile_picture:hover {
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+}
+
+.user_name {
+    text-align: center;
+    margin: auto;
+    font-size: 1.8rem;
+
+}
+
+.divider {
+    width: 100%;
+    height: 1px;
+    background-color: #ccc;
+    margin: 10px 0;
+}
+
+.account_informtion {
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    justify-content: start;
+    gap: 10px;
+}
+
+ h1 {
+    margin-bottom: 10px;
+    padding-left: 10px;
+}
+
+.account_informtion p{
+    padding-left: 20px;
+}
+
+.special_text {
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.session {
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    justify-content: start;
+    gap: 5px;
+    margin-bottom: 10px;
+    padding: 20px;
+    width: 100%;
+    background-color: hsl(0, 0%, 15%);
+    border-radius: 10px;
+}
+
+.logout_button {
+    margin-top: 10px;
+    width: max-content;
+    padding: 0 20px;
+    height: 35px;
+    border: none;
+    border-radius: 5px;
+    background-color: #f44336;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+.logout-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.logout_button.main {
+    text-align: center;
+    width: 50%;
+}
+
+.logout_button:hover {
+    background-color: #d32f2f;
+}
+
+.current_session {
+    background-color: hsl(116, 46%, 15%);
+}

@@ -5,6 +5,7 @@ load_dotenv()
 
 class Config():
     def __init__(self):
+        self.secret_key = "secret_key"
         self.authority = ".projectrexa.dedyn.io"
         self.config_name = 'default'
         self.host = "0.0.0.0"
@@ -19,6 +20,8 @@ class Config():
         self.github_client_id = os.getenv("github_client_id")
         self.github_client_secret = os.getenv("github_client_secret")
         self.github_redirect_uri = "https://accounts.projectrexa.dedyn.io/callback/github"
+        self.google_redirect_uri = "https://accounts.projectrexa.dedyn.io/callback/google"
+        self.google_client_secret = os.getenv("google_client_secret")
         
 
 class ProductionConfig(Config):
@@ -34,6 +37,8 @@ class DevelopmentConfig(Config):
         self.debug = True
         self.recaptcha = True
         self.github_redirect_uri = "http://127.0.0.1:5000/callback/github"
+        self.google_redirect_uri = "http://127.0.0.1:5000/callback/google"
+
 
 class MaintananceConfig(Config):
     def __init__(self):
