@@ -28,11 +28,12 @@ config = get_config()
 
 s3 = boto3.resource(
     service_name='s3',
-    aws_access_key_id= config.s3_access_key_id,
+    aws_access_key_id=config.s3_access_key_id,
     aws_secret_access_key=config.s3_secret_access_key,
     endpoint_url='https://s3.tebi.io',
     verify=True,
     config=Config(signature_version='s3'),
+    region_name='us-east-1',
 )
 
 
@@ -150,7 +151,7 @@ def api_signin():
 
             if user is None:
                 return make_response(jsonify({"message": "This email is not registered"}), 400)
-            
+
             if user['method'] != 'email':
                 return make_response(jsonify({"message": "This email was registered with a social method"}), 400)
 
@@ -677,4 +678,3 @@ def internal_server_error(e):
         jsonify({"message": "Internal server error"}), 500)
     response.set_cookie('X-Identity', '', expires=0)
     return response
-
