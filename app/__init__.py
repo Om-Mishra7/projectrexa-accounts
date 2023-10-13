@@ -352,6 +352,7 @@ def github_callback():
         return response
 
     except Exception as e:
+        print(e)
         flash("Unable to login with GitHub, please try again later")
         return make_response(redirect(url_for('sign_in')), 302)
 
