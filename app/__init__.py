@@ -8,6 +8,7 @@ from flask_limiter.util import get_remote_address
 import requests
 from itsdangerous import URLSafeSerializer, BadSignature
 import boto3
+from botocore.client import Config
 from flask import Flask, request, make_response, redirect, url_for, jsonify, render_template, send_from_directory, flash
 from app.functions import create_redis_database_connection, create_mongoDB_database_connection, generate_session, get_session, generate_token, send_mail, verify_recaptcha, verify_hashed_password, hash_password, generate_user_id, get_active_sessions, deleter_all_sessions
 from app.config import get_config
@@ -31,8 +32,7 @@ s3 = boto3.resource(
     aws_secret_access_key=config.s3_secret_access_key,
     endpoint_url='https://s3.tebi.io',
     verify=True,
-    # Set the signature version to the previous version
-    config=boto3.session.Config(signature_version='s3'),
+    config=Config(signature_version='s3'),
     region_name='eu-central-1'
 )
 

@@ -10,3 +10,4 @@ Flask-Limiter
 setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
 boto3
 flask_limiter
+botocore
