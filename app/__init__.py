@@ -27,8 +27,8 @@ config = get_config()
 # S3 configuration
 
 session = boto3.Session(
-    aws_access_key_id=config.tebi_access_key_id,
-    aws_secret_access_key=config.tebi_secret_access_key,
+    aws_access_key_id= "2EDOxjffKSBlu92v",
+    aws_secret_access_key= "5EnNRAqNkD510ZgUO73wO0fCaYCPznHBlzASpSsX",
 )
 
 tebi = session.resource(
