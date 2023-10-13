@@ -30,9 +30,10 @@ s3 = boto3.resource(
     aws_access_key_id='Uf6oBAfEo3b9apub',
     aws_secret_access_key=config.s3_secret_access_key,
     endpoint_url='https://s3.tebi.io',
-    verify=False,
+    verify=True,
     # Set the signature version to the previous version
     config=boto3.session.Config(signature_version='s3'),
+    region_name='eu-central-1'
 )
 
 
