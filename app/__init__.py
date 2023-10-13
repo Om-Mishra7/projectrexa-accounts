@@ -26,10 +26,10 @@ config = get_config()
 
 # S3 configuration
 
-s3 = boto3.resource(
+tebi = boto3.resource(
     service_name='s3',
-    aws_access_key_id=config.s3_access_key_id,
-    aws_secret_access_key=config.s3_secret_access_key,
+    aws_access_key_id=config.tebi_access_key_id,
+    aws_secret_access_key=config.tebi_secret_access_key,
     endpoint_url='https://s3.tebi.io',
     verify=True,
     config=Config(signature_version='s3'),
@@ -80,13 +80,6 @@ def favicon():
         This function returns the favicon for the application.
     '''
     return send_from_directory('static/images', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
-@app.route('/aws-id')
-def aws_id():
-    '''
-        This function returns the aws id for the application.
-    '''
-    return config.s3_access_key_id
 
 @app.route('/')
 def index():
@@ -338,7 +331,7 @@ def github_callback():
         profile_picture_data = requests.get(
             user_data['avatar_url'], timeout=3).content
 
-        s3.Bucket('cdn.projectrexa.dedyn.io').put_object(
+        tebi.Bucket('cdn.projectrexa.dedyn.io').put_object(
             Key=f'user-content/avatars/{user_local["user_id"]}.png', Body=profile_picture_data, ACL='public-read', ContentType='image/png')
 
         if user_local['method'] != 'github':
@@ -423,7 +416,7 @@ def google_callback():
             profile_picture_data = requests.get(
                 user_data['picture'], timeout=3).content
 
-            s3.Bucket('cdn.projectrexa.dedyn.io').put_object(
+            tebi.Bucket('cdn.projectrexa.dedyn.io').put_object(
                 Key=f'user-content/avatars/{user_local["user_id"]}.png', Body=profile_picture_data, ACL='public-read', ContentType='image/png')
         else:
             if user_local['method'] != 'google':
