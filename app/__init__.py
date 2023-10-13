@@ -408,7 +408,6 @@ def google_callback():
             {"email": user_data['email']})
 
         user_id = generate_user_id()
-        print(user_id)
         if user_local is None:
             mongoDB_cursor['users'].insert_one({"user_id": user_id, "email": user_data['email'], "method": "google", "name": user_data[
                                                'name'].title(), "profile_picture": f'https://cdn.projectrexa.dedyn.io/user-content/avatars/{user_id}.png', "role": "user", "last_login": datetime.datetime.utcnow(), "created_at": datetime.datetime.utcnow(), "status": "active", "verified": True})

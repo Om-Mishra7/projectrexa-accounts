@@ -169,8 +169,6 @@ def get_session(request):
         try:
             session = json.loads(redis_client.get(session_id))
 
-            print(session)
-
         except Exception as e:
             return None
 
