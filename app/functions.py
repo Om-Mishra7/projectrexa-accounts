@@ -1,16 +1,68 @@
-from app.config import get_config
-from app.database import create_redis_database_connection, create_mongoDB_database_connection
-import bcrypt
-import requests
+'''
+This file contains all the functions used in the application
+'''
+import time
+import datetime
 import json
 import secrets
+import bcrypt
+import requests
+import redis
+import pymongo
 from itsdangerous import URLSafeSerializer
-import datetime
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
-from flask import render_template, make_response, redirect, url_for
+from flask import render_template
+from app.config import get_config
+
 
 config = get_config()
+
+
+def create_redis_database_connection(max_attempts=10, base_delay=5, attempt_number=1):
+    while attempt_number <= max_attempts:
+
+        try:
+            redis_client = redis.Redis.from_url(
+                config.redis_url, decode_responses=True)
+            redis_client.ping()
+            with open("log.log", "a") as f:
+                f.write(
+                    "{} | INFO - Connected to REDIS database\n\n".format(datetime.datetime.utcnow()))
+            return redis_client
+
+        except Exception as e:
+            print("Redis Connection Error: ", e)
+            time.sleep(base_delay * attempt_number**2)
+            create_redis_database_connection(attempt_number=attempt_number+1)
+
+    with open("log.log", "a") as f:
+        f.write(
+            "{} | ERROR - Could not connect to REDIS database\n\n".format(datetime.datetime.utcnow()))
+    raise Exception("Could not connect to database")
+
+
+def create_mongoDB_database_connection(max_attempts=10, base_delay=5, attempt_number=1):
+    while attempt_number <= max_attempts:
+
+        try:
+            mongo_client = pymongo.MongoClient(config.mongoDB_url)
+            mongo_client.server_info()
+            with open("log.log", "a") as f:
+                f.write(
+                    "{} | INFO - Connected to MONGO_DB database\n\n".format(datetime.datetime.utcnow()))
+            return mongo_client
+
+        except Exception as e:
+            print("MongoDB Connection Error: ", e)
+            time.sleep(base_delay * attempt_number**2)
+            create_mongoDB_database_connection(attempt_number=attempt_number+1)
+
+    with open("log.log", "a") as f:
+        f.write(
+            "{} | ERROR - Could not connect to MONGO_DB database\n\n".format(datetime.datetime.utcnow()))
+    raise Exception("Could not connect to database")
+
 
 redis_client, mongoDB_client = create_redis_database_connection(
 ), create_mongoDB_database_connection()
@@ -95,8 +147,6 @@ def generate_session(user, request):
         'session_id': session_id
     }
 
-    
-
     location_info = requests.get(
         'http://ip-api.com/json/{}?fields=16409'.format(request.remote_addr)).json()
 
@@ -131,17 +181,17 @@ def get_session(request):
         try:
             session_id = serializer.loads(request.cookies.get('X-Identity'))
         except Exception as e:
-            with open('log.log', 'a') as f:
-                f.write('{} | ERROR | {}\n\n'.format(
-                    datetime.datetime.now(), e))
+            with open('log.log', 'a', encoding='utf-8') as f:
+                f.write(f'{datetime.datetime.now()} | ERROR | {e}\n\n')
             return None
         try:
             session = json.loads(redis_client.get(session_id))
 
+            print(session)
+
         except Exception as e:
-            with open('log.log', 'a') as f:
-                f.write('{} | ERROR | {}\n\n'.format(
-                    datetime.datetime.now(), e))
+            with open('log.log', 'a', encoding='utf-8') as f:
+                f.write(f'{datetime.datetime.now()} | ERROR | {e}\n\n')
             return None
 
         return User(session['session_id'], session['user_id'], session['user_name'], session['user_email'], session['user_profile_picture'], session['user_role'], session['user_ip_address'], session['status'])
@@ -150,7 +200,7 @@ def get_session(request):
 
 
 def generate_user_id():
-    user_id = secrets.token_hex(16)
+    user_id = secrets.token_hex(4)
     if mongoDB_cursor['users'].find_one({"user_id": user_id}) is not None:
         return generate_user_id()
     return user_id
@@ -159,12 +209,13 @@ def generate_user_id():
 def generate_token(user, scope):
     serializer = URLSafeSerializer(config.secret_key)
     token = secrets.token_hex(32)
+    mongoDB_cursor["tokens"].delete_many({"user_id": user['user_id'], "scope": scope}) # Delete all tokens with same scope for the user
     mongoDB_cursor['tokens'].insert_one({
         "token": token,
         "user_id": user['user_id'],
         "created_at": datetime.datetime.now(),
         "expires_at": datetime.datetime.now() + datetime.timedelta(hours=6),
-        "scope":scope
+        "scope": scope
     })
 
     return (serializer.dumps(token))
@@ -175,16 +226,20 @@ def get_active_sessions(user_id):
     sessions = []
     for session in mongoDB_cursor['sessions'].find({"user_id": user_id}):
         if redis_client.get(session['session_id']) is not None:
-            session = {**session, **{"logout_token": Serializer.dumps(session['session_id'])}}
+            session = {
+                **session, **{"logout_token": Serializer.dumps(session['session_id'])}}
             sessions.append(session)
         else:
-            mongoDB_cursor['sessions'].delete_one({"session_id": session['session_id']})
+            mongoDB_cursor['sessions'].delete_one(
+                {"session_id": session['session_id']})
     return sessions
+
 
 def deleter_all_sessions(user_id):
     for session in mongoDB_cursor['sessions'].find({"user_id": user_id}):
         redis_client.delete(session['session_id'])
-        mongoDB_cursor['sessions'].delete_one({"session_id": session['session_id']})
+        mongoDB_cursor['sessions'].delete_one(
+            {"session_id": session['session_id']})
     return True
 
 
@@ -192,27 +247,32 @@ def send_mail(user, token, type):
     api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
         sib_api_v3_sdk.ApiClient(configuration))
 
-    match type:
-        case "forgot_password":
-            subject = "Forgot Password Request | ProjectRexa"
-            sender = {"name": "ProjectRexa", "email": "noreply@projectrexa.dedyn.io"}
-            to = [{"email": user["email"], "name": user["name"]}]
-            reply_to = {"email": "contact@projectrexa.dedyn.io", "name": "ProjectRexa"}
-            html = render_template('email/forgot_password.html', name = user['name'], link = "https://accounts.projectrexa.dedyn.io/reset-password?token={}".format(token))
-            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
-                to=to, html_content= html, reply_to=reply_to, sender=sender, subject=subject)
+    if type == "forgot_password":
+        subject = "Forgot Password Request | ProjectRexa"
+        sender = {"name": "ProjectRexa",
+                    "email": "noreply@projectrexa.dedyn.io"}
+        to = [{"email": user["email"], "name": user["name"]}]
+        reply_to = {"email": "contact@projectrexa.dedyn.io",
+                    "name": "ProjectRexa"}
+        html = render_template(
+            'email/forgot_password.html', name=user['name'], link="https://accounts.projectrexa.dedyn.io/reset-password?token={}".format(token))
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=to, html_content=html, reply_to=reply_to, sender=sender, subject=subject)
 
-        case "verify_email":
-            subject = "Verify Email | ProjectRexa"
-            sender = {"name": "ProjectRexa", "email": "noreply@projectrexa.dedyn.io"}
-            to = [{"email": user["email"], "name": user["name"]}]
-            reply_to = {"email": "contact@projectrexa.dedyn.io", "name": "ProjectRexa"}
-            html = render_template('email/verify_email.html', name = user['name'], link = "https://accounts.projectrexa.dedyn.io/verify-email?token={}".format(token))
-            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
-                to=to, html_content= html, reply_to=reply_to, sender=sender, subject=subject)
-            
-        case _:
-            return False
+    if type == "verify_email":
+        subject = "Verify Email | ProjectRexa"
+        sender = {"name": "ProjectRexa",
+                    "email": "noreply@projectrexa.dedyn.io"}
+        to = [{"email": user["email"], "name": user["name"]}]
+        reply_to = {"email": "contact@projectrexa.dedyn.io",
+                    "name": "ProjectRexa"}
+        html = render_template(
+            'email/verify_email.html', name=user['name'], link="https://accounts.projectrexa.dedyn.io/verify-email?token={}".format(token))
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=to, html_content=html, reply_to=reply_to, sender=sender, subject=subject)
+
+    else:
+        return False
     try:
         api_instance.send_transac_email(send_smtp_email)
         return True

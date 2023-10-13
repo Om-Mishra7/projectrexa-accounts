@@ -11,7 +11,7 @@
   <body>
     <main>
       <img id="profile_picture" class="profile_picture"
-      src="//wsrv.nl/?url={{user_info["profile_picture"]}}&height=150&width=150"
+      src="{{user_info["profile_picture"]}}"
       alt="{{user_info["name"]}} Profile Picture">
       <p id="user_name" class="user_name">
         Welcome, {{user_info["name"].title()}}

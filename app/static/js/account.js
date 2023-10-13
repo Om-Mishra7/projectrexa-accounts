@@ -10,7 +10,7 @@ function remove_session(logout_token) {
 
     logout_button.innerHTML = 'Logging out...';
     logout_button.disabled = true;
-    fetch('/api/remove_session', {
+    fetch('/api/auth/remove_session', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

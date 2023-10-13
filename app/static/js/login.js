@@ -23,7 +23,7 @@ function submitForm() {
     grecaptcha
       .execute("6LdINlonAAAAAK5yArQKUqdHU7sIM8lWD_t_ttOU", { action: "submit" })
       .then(function (token) {
-        fetch("/sign-in", {
+        fetch("/api/auth/sign-in", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

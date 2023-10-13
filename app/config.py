@@ -1,10 +1,21 @@
+'''
+This file contains the config classes for the server
+'''
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Config():
+    '''
+    This is the base config class, all other configs inherit from this class
+    '''
+
     def __init__(self):
+        '''
+        This is the base config class, all other configs inherit from this class
+        '''
         self.secret_key = "secret_key"
         self.authority = ".projectrexa.dedyn.io"
         self.config_name = 'default'
@@ -22,15 +33,32 @@ class Config():
         self.github_redirect_uri = "https://accounts.projectrexa.dedyn.io/callback/github"
         self.google_redirect_uri = "https://accounts.projectrexa.dedyn.io/callback/google"
         self.google_client_secret = os.getenv("google_client_secret")
-        
+        self.sentry_dsn = os.getenv("sentry_dsn")
+        self.s3_secret_access_key = os.getenv("s3_secret_access_key")
+
 
 class ProductionConfig(Config):
+    '''
+    This config is used when the server is running in production
+    '''
+
     def __init__(self):
+        '''
+        This config is used when the server is running in production
+        '''
         super().__init__()
         self.config_name = 'production'
 
+
 class DevelopmentConfig(Config):
+    '''
+    This config is used when the server is running locally
+    '''
+
     def __init__(self):
+        '''
+        This config is used when the server is running locally
+        '''
         super().__init__()
         self.config_name = 'development'
         self.authority = "127.0.0.1:5000"
@@ -41,11 +69,22 @@ class DevelopmentConfig(Config):
 
 
 class MaintananceConfig(Config):
+    '''
+    This config is used when the server is down for maintanance
+    '''
+
     def __init__(self):
+        '''
+        This config is used when the server is down for maintanance
+        '''
         super().__init__()
         self.config_name = 'maintanance'
 
+
 def get_config():
+    '''
+    Returns the config class based on the environment variable config_name
+    '''
     config = {
         'production': ProductionConfig(),
         'development': DevelopmentConfig(),
