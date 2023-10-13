@@ -34,6 +34,7 @@ class Config():
         self.google_redirect_uri = "https://accounts.projectrexa.dedyn.io/callback/google"
         self.google_client_secret = os.getenv("google_client_secret")
         self.sentry_dsn = os.getenv("sentry_dsn")
+        self.s3_access_key_id = os.getenv("s3_access_key_id")
         self.s3_secret_access_key = os.getenv("s3_secret_access_key")
 
 

@@ -28,7 +28,7 @@ config = get_config()
 
 s3 = boto3.resource(
     service_name='s3',
-    aws_access_key_id='Uf6oBAfEo3b9apub',
+    aws_access_key_id= config.s3_access_key_id,
     aws_secret_access_key=config.s3_secret_access_key,
     endpoint_url='https://s3.tebi.io',
     verify=True,
