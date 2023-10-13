@@ -32,7 +32,7 @@ s3 = boto3.resource(
     endpoint_url='https://s3.tebi.io',
     verify=False,
     # Set the signature version to the previous version
-    config=boto3.session.Config(signature_version='s3')
+    config=boto3.session.Config(signature_version='s3'),
 )
 
 
