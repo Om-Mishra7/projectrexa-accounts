@@ -33,7 +33,6 @@ s3 = boto3.resource(
     endpoint_url='https://s3.tebi.io',
     verify=True,
     config=Config(signature_version='s3'),
-    region_name='eu-central-1'
 )
 
 
