@@ -56,28 +56,6 @@ serializer = URLSafeSerializer(config.secret_key)
 mongoDB_cursor = mongoDB_client['starry_night']
 
 
-# Function to log request data
-@app.after_request
-def logging(response):
-    '''
-        This function logs the request data to a file.
-    '''
-
-    if request.path == '/favicon.ico' or request.path.startswith('/static'):
-        return response
-
-    if response.status_code < 400:
-        level = 'INFO'
-    elif response.status_code >= 400 and response.status_code < 500:
-        level = 'WARNING'
-    else:
-        level = 'ERROR'
-
-    with open('log.log', 'a', encoding='utf-8') as f:
-        f.write(f'{datetime.datetime.utcnow()} - {request.remote_addr} - {request.method} - {request.path} - {response.status_code} - {level}\n')
-    return response
-
-
 # Function to set headers
 
 @app.after_request
@@ -700,3 +678,4 @@ def internal_server_error(e):
         jsonify({"message": "Internal server error"}), 500)
     response.set_cookie('X-Identity', '', expires=0)
     return response
+
