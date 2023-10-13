@@ -81,6 +81,12 @@ def favicon():
     '''
     return send_from_directory('static/images', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+@app.route('/aws-id')
+def aws_id():
+    '''
+        This function returns the aws id for the application.
+    '''
+    return config.s3_access_key_id
 
 @app.route('/')
 def index():
