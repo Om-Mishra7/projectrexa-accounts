@@ -36,6 +36,7 @@ class Config():
         self.sentry_dsn = os.getenv("sentry_dsn")
         self.tebi_access_key_id = os.getenv("TEBI_ACCESS_KEY_ID")
         self.tebi_secret_access_key = os.getenv("TEBI_SECRET_ACCESS_KEY")
+        self.api_key = "j%Z@dkFBxW*S&(5KNuPAMH2JI7vVQ8nLzgcfGTmRUhErtya$+)!q39Xp4#bwYeDs"
 
 
 class ProductionConfig(Config):
