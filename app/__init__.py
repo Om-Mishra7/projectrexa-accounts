@@ -68,7 +68,6 @@ def favicon():
     '''
     return send_from_directory('static/images', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-
 @app.route('/')
 def index():
     '''
@@ -318,12 +317,13 @@ def github_callback():
 
         profile_picture_data = requests.get(
             user_data['avatar_url'], timeout=3).content
-
+        
         # Send the profile picture to the API
 
-        if requests.post("https://ather.api.projectrexa.dedyn.io", files={'file': profile_picture_data}, data={'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png'}, headers={'X-Authorization': config.api_key}, timeout=5).json()['status'] != 'success':
+        if requests.post("https://ather.api.projectrexa.dedyn.io", files={'file': profile_picture_data}, data= {'key' : f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png'}, headers={'X-Authorization': config.api_key}, timeout=5).json()['status'] != 'success':
             flash("We are experiencing some issues, please try again later")
             return make_response(redirect(url_for('sign_in')), 302)
+
 
         if user_local['method'] != 'github':
             flash("This email is already registered with another method")
@@ -406,12 +406,14 @@ def google_callback():
 
             profile_picture_data = requests.get(
                 user_data['picture'], timeout=3).content
-
+            
             # Send the profile picture to the API
 
-            if requests.post("https://ather.api.projectrexa.dedyn.io", files={'file': profile_picture_data}, data={'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png'}, headers={'X-Authorization': config.api_key}, timeout=5).json()['status'] != 'success':
+            if requests.post("https://ather.api.projectrexa.dedyn.io", files={'file': profile_picture_data}, data= {'key' : f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png'} , headers={'X-Authorization': config.api_key}, timeout=5).json()['status'] != 'success':
                 flash("We are experiencing some issues, please try again later")
                 return make_response(redirect(url_for('sign_in')), 302)
+            
+            print(requests.post("https://ather.api.projectrexa.dedyn.io", files={'file': profile_picture_data}, data= {'key' : f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png'} , headers={'X-Authorization': config.api_key}, timeout=5))
 
         else:
             if user_local['method'] != 'google':
