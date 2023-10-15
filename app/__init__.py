@@ -322,7 +322,7 @@ def github_callback():
         # Send the profile picture to the API
 
         response = requests.post("http://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                 'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=5).json()
+                                 'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=10).json()
 
         if response['status'] == 'failed':
             return make_response(jsonify({"message": "We are experiencing some issues, please try again later"}), 500)
@@ -410,7 +410,7 @@ def google_callback():
                 user_data['picture'], timeout=3).content
 
             response = requests.post("http://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=5).json()
+                'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=10).json()
 
             print(response)
             if response['status'] == 'failed':
@@ -429,7 +429,7 @@ def google_callback():
                 user_data['picture'], timeout=3).content
 
             response = requests.post("http://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=5).json()
+                'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=10).json()
 
             print(response)
             if response['status'] == 'failed':
