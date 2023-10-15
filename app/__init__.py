@@ -411,14 +411,13 @@ def google_callback():
 
             # Send the profile picture to the API
 
-            response = requests.post("http://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
+            print("Sending profile picture to API")
+            response = requests.post("http://localhost:7000/upload", files={'file': profile_picture_data}, data={
                 'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=5).json()
 
+            print(response)
             if response['status'] == 'failed':
                 return make_response(jsonify({"message": "We are experiencing some issues, please try again later"}), 500)
-
-            print(requests.post("https://ather.api.projectrexa.dedyn.io", files={'file': profile_picture_data}, data={
-                  'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png'}, headers={'X-Authorization': config.api_key}, timeout=5))
 
         else:
             if user_local['method'] != 'google':
@@ -428,6 +427,19 @@ def google_callback():
             if user_local['status'] == 'suspended':
                 flash("Account is suspended, please contact support")
                 return make_response(redirect(url_for('sign_in')), 302)
+
+            profile_picture_data = requests.get(
+                user_data['picture'], timeout=3).content
+
+            # Send the profile picture to the API
+
+            print("Sending profile picture to API")
+            response = requests.post("http://localhost:7000/upload", files={'file': profile_picture_data}, data={
+                'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=5).json()
+
+            print(response)
+            if response['status'] == 'failed':
+                return make_response(jsonify({"message": "We are experiencing some issues, please try again later"}), 500)
 
             mongoDB_cursor['users'].update_one({"email": user_local['email']}, {
                                                "$set": {"last_login": datetime.datetime.utcnow()}})
