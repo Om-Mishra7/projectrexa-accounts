@@ -409,10 +409,7 @@ def google_callback():
             profile_picture_data = requests.get(
                 user_data['picture'], timeout=3).content
 
-            # Send the profile picture to the API
-
-            print("Sending profile picture to API")
-            response = requests.post("http://localhost:7000/upload", files={'file': profile_picture_data}, data={
+            response = requests.post("http://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
                 'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=5).json()
 
             print(response)
@@ -431,10 +428,7 @@ def google_callback():
             profile_picture_data = requests.get(
                 user_data['picture'], timeout=3).content
 
-            # Send the profile picture to the API
-
-            print("Sending profile picture to API")
-            response = requests.post("http://localhost:7000/upload", files={'file': profile_picture_data}, data={
+            response = requests.post("http://ather.api/projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
                 'key': f'user-content/avatars/{user_local["user_id"]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': config.api_key}, timeout=5).json()
 
             print(response)
