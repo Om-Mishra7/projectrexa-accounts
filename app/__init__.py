@@ -1,5 +1,5 @@
 '''
-    This file contains the main application logic and routes for the application.
+    This file contains the main application level logic and routes for the application.
 '''
 import datetime
 import secrets
