@@ -1,96 +1,64 @@
-'''
-This file contains the config classes for the server
-'''
 import os
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
 
-class Config():
-    '''
-    This is the base config class, all other configs inherit from this class
-    '''
+class CONFIG:
+    
+    if os.getenv("SERVER_ENVIRONMENT") == "DEVELOPMENT":
+        SERVER_ENVIRONMENT = "DEVELOPMENT"
+        DEBUG = True
+        TESTING = True
+        GITHUB_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("GITHUB_REDIRECT_URI")
+        GOOGLE_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("GOOGLE_REDIRECT_URI")
+        DISCORD_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("DISCORD_REDIRECT_URI")
+        REDDIT_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("REDDIT_REDIRECT_URI")
+        
+        
+        
+    else:
+        SERVER_ENVIRONMENT = "PRODUCTION"
+        DEBUG = False
+        TESTING = False
+        GITHUB_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("GITHUB_REDIRECT_URI")
+        GOOGLE_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("GOOGLE_REDIRECT_URI")
+        DISCORD_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("DISCORD_REDIRECT_URI")
+        REDDIT_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("REDDIT_REDIRECT_URI")
+        
+    APPLICATION_SECRET_KEY = os.getenv("APPLICATION_SECRET_KEY")
+    
+    PLANETSCALE_DATABASE = os.getenv("PLANETSCALE_DATABASE")
+    PLANETSCALE_DATABASE_HOST = os.getenv("PLANETSCALE_DATABASE_HOST")
+    PLANETSCALE_DATABASE_USERNAME = os.getenv("PLANETSCALE_DATABASE_USERNAME")
+    PLANETSCALE_DATABASE_PASSWORD = os.getenv("PLANETSCALE_DATABASE_PASSWORD")
+    
+    REDIS_DATABASE_URL = os.getenv("REDIS_DATABASE_URL")
+    
+    RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
+    RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
+    
+    AUTHENTICATION_METHODS = ["EMAIL", "GITHUB", "GOOGLE", "DISCORD"]
+    
+    GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+    GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+    
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+    
+    DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
+    DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+    
+    TWITTER_CLIENT_ID = os.getenv("TWITTER_CLIENT_ID")
+    TWITTER_CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET")
+    
+    REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
 
-    def __init__(self):
-        '''
-        This is the base config class, all other configs inherit from this class
-        '''
-        self.secret_key = "secret_key"
-        self.authority = ".projectrexa.dedyn.io"
-        self.config_name = 'default'
-        self.host = "0.0.0.0"
-        self.port = 443
-        self.redis_url = os.getenv("redis_url")
-        self.mongoDB_url = os.getenv("mongoDB_url")
-        self.secret_key = os.getenv("secret_key")
-        self.debug = False
-        self.recaptcha = True
-        self.recaptcha_secret_key = os.getenv("recaptcha_secret_key")
-        self.recaptcha_site_key = os.getenv("recaptcha_site_key")
-        self.github_client_id = os.getenv("github_client_id")
-        self.github_client_secret = os.getenv("github_client_secret")
-        self.github_redirect_uri = "https://accounts.projectrexa.dedyn.io/callback/github"
-        self.google_redirect_uri = "https://accounts.projectrexa.dedyn.io/callback/google"
-        self.google_client_secret = os.getenv("google_client_secret")
-        self.sentry_dsn = os.getenv("sentry_dsn")
-        self.tebi_access_key_id = os.getenv("TEBI_ACCESS_KEY_ID")
-        self.tebi_secret_access_key = os.getenv("TEBI_SECRET_ACCESS_KEY")
-        self.api_key = os.getenv("api_key")
+    
+    
 
-
-class ProductionConfig(Config):
-    '''
-    This config is used when the server is running in production
-    '''
-
-    def __init__(self):
-        '''
-        This config is used when the server is running in production
-        '''
-        super().__init__()
-        self.config_name = 'production'
-
-
-class DevelopmentConfig(Config):
-    '''
-    This config is used when the server is running locally
-    '''
-
-    def __init__(self):
-        '''
-        This config is used when the server is running locally
-        '''
-        super().__init__()
-        self.config_name = 'development'
-        self.authority = "127.0.0.1:5000"
-        self.debug = True
-        self.recaptcha = True
-        self.github_redirect_uri = "http://127.0.0.1:5000/callback/github"
-        self.google_redirect_uri = "http://127.0.0.1:5000/callback/google"
-
-
-class MaintananceConfig(Config):
-    '''
-    This config is used when the server is down for maintanance
-    '''
-
-    def __init__(self):
-        '''
-        This config is used when the server is down for maintanance
-        '''
-        super().__init__()
-        self.config_name = 'maintanance'
-
-
-def get_config():
-    '''
-    Returns the config class based on the environment variable config_name
-    '''
-    config = {
-        'production': ProductionConfig(),
-        'development': DevelopmentConfig(),
-        'maintanance': MaintananceConfig(),
-        'default': Config()
-    }
-    return config[os.getenv("config_name") or 'production']
+    
+    
+        

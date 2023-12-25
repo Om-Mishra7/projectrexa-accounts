@@ -1,35 +1,45 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap');
-
-:root {
-    --text: hsl(0, 0%, 95%);
-    --background: hsl(0, 0%, 9%);
-    --primary: hsl(240, 100%, 42%);
-    --secondary: hsl(0, 0%, 15%);
-    --accent: hsl(156, 2%, 52%);
-}
+@import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
 
 * {
-    box-sizing: border-box;
     margin: 0;
     padding: 0;
-}
+    box-sizing: border-box;
+    font-family: 'Lato', sans-serif;
 
-html {
-    font-size: 1rem;
-    font-family: 'Roboto', Arial, Helvetica, sans-serif;
-    color: var(--text);
-    background-color: var(--background);
+    --color-primary-100: #673ab7;
+    --color-primary-200: #7a4fbf;
+    --color-primary-300: #8c64c8;
+    --color-primary-400: #9d79d0;
+    --color-primary-500: #ae8fd8;
+    --color-primary-600: #bfa5e0;
+
+    --color-surface-100: #121212;
+    --color-surface-200: #282828;
+    --color-surface-300: #3f3f3f;
+    --color-surface-400: #575757;
+    --color-surface-500: #717171;
+    --color-surface-600: #8b8b8b;
+
+    --color-surface-contrast-100: #ffffff;
+    --color-surface-contrast-200: #e6e6e6;
+    --color-surface-contrast-300: #cccccc;
+    --color-surface-contrast-400: #b3b3b3;
+    --color-surface-contrast-500: #999999;
+
+    --color-surface-dark-100: #000000;
+    --color-surface-dark-200: #0d0d0d;
+    --color-surface-dark-300: #1a1a1a;
+    --color-surface-dark-400: #262626;
+    --color-surface-dark-500: #333333;
+
 }
 
 body {
-    min-height: 100%;
+    background-color: var(--color-surface-100);
+    color: var(--color-surface-contrast-100);
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-weight: 500;
+.grecaptcha-badge {
+    visibility: hidden !important;
 }
+

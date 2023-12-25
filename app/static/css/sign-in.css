@@ -1,0 +1,172 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--color-surface-100);
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    width: 90%;
+    max-width: 350px;
+    background-color: var(--color-surface-200);
+    border-radius: 10px;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+    padding: 30px 20px;
+    gap: 10px;
+}
+
+.oauth-sign-in {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.oauth-sign-in h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    display: block;
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.oauth-sign-in p {
+    font-size: .9rem;
+    color: var(--color-surface-contrast-300);
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.oauth-sign-in button {
+    width: 50px;
+    height: 50px;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+    margin-right: 10px;
+}
+
+
+.discord-logo, .reddit-logo {
+    width: 28px !important;
+    height: 28px !important;
+    object-fit: contain;
+}
+
+
+.github-logo {
+    filter: invert(1);
+}
+
+.oauth-sign-in button {
+    width: 50px;
+    height: 50px;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+    margin-right: 10px;
+
+}
+
+.oauth-sign-in button svg {
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+}
+
+.email-sign-in {
+    width: 100%;
+}
+
+.email-sign-in form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.email-sign-in form label {
+    font-size: .9rem;
+    color: var(--color-surface-contrast-100);
+    display: block;
+    width: 100%;
+}
+
+.email-sign-in form input {
+    width: 100%;
+    height: 45px;
+    border-radius: 5px;
+    background-color: var(--color-surface-300);
+    color: var(--color-surface-contrast-100);
+    padding: 0 10px;
+    border: none;
+    outline: none;
+    font-size: .9rem;
+}
+
+.email-sign-in form input::placeholder {
+    color: var(--color-surface-contrast-300);
+}
+
+.email-sign-in form input[type="submit"] {
+    background-color: var(--color-primary-100);
+    color: var(--color-surface-contrast-100);
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+.footer {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.footer span {
+    font-size: .9rem;
+    color: var(--color-surface-contrast-300);
+}
+
+.footer a {
+    font-size: .9rem;
+    color: var(--color-primary-300);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: var(--color-primary-600);
+}
+
+.footer-links {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+}
+
+.disclaimer {
+    font-size: .8rem;
+    color: var(--color-surface-contrast-300);
+    margin-top: 10px;
+    word-break: keep-all;
+    white-space: wrap;
+}
+
+.disclaimer a {
+    color: var(--color-primary-300);
+    text-decoration: none;
+}
