@@ -1,10 +1,13 @@
 from config import CONFIG
 import pickle
 import datetime
+import random
+import string
 import requests 
 import mysql.connector
 import redis
 import secrets
+import re
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response, g, abort, send_from_directory, send_file, Response
 
 
@@ -42,6 +45,65 @@ def generate_session_id(session_ip_address=None):
             REDIS_DATABSE_CONNECTION.set(session_id, pickle.dumps({"sessionCreatedAt": datetime.datetime.now().timestamp(), "isLoggedIn": False, "createdIPAddress": session_ip_address}))
             return session_id
 
+def sanitize_username(name):
+    sanitized_name = re.sub(r'[^a-zA-Z0-9]', '', name)
+    return sanitized_name.lower().replace(" ", "-")
+
+def generate_username(name):
+    username = name.lower().replace(" ", "-")
+    while True:
+        SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE Username = %s", (username,))
+        if SQL_DATABASE_CURSOR.with_rows:
+            # Fetch the result to avoid "Unread result found" error
+            SQL_DATABASE_CURSOR.fetchall()
+
+        if SQL_DATABASE_CURSOR.rowcount == 0:
+            return username
+        username = username + str(secrets.randbelow(9))
+        
+def get_country_from_ip(ip_address):
+    try:
+        request = requests.get(f"https://ipapi.co/{ip_address}/country_name/", timeout=3).text
+        if request.status_code == 200:
+            return request.text.lower()
+        return "Undefined"
+    except:
+        return "Undefined"
+ 
+def generate_profile_id():
+    while True:
+        # ProfileID is a 8 digit number without 0 as the first digit
+        profile_id = random.choice(string.digits[1:]) + ''.join(random.choices(string.digits, k=7))
+        
+        SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE ProfileID = %s", (profile_id,))
+        if SQL_DATABASE_CURSOR.with_rows:
+            # Fetch the result to avoid "Unread result found" error
+            SQL_DATABASE_CURSOR.fetchall()
+
+        if SQL_DATABASE_CURSOR.rowcount == 0:
+            return profile_id       
+
+def login_user(user_data):
+    g.user.set("loggedIn", True)
+    g.user.set("userID", user_data[0])
+    g.user.set("userName", user_data[1])
+    g.user.set("userFirstName", user_data[2])
+    g.user.set("userLastName", user_data[3])
+    g.user.set("userEmail", user_data[4])
+    g.user.set("accountRole", user_data[9])
+    g.user.set("profileImageURL", user_data[13])
+    g.user.set("profileID", user_data[16])
+    
+    if user_data[14] == "EMAIL":
+        g.user.set("emailVerified", user_data[15])
+        g.user.set("signupMethod", user_data[14])
+    else:
+        g.user.set("emailVerified", True)
+        g.user.set("signupMethod", user_data[14])
+    
+    SQL_DATABASE_CURSOR.execute("UPDATE Users SET LastLoginDate = %s WHERE Email = %s", (datetime.datetime.now(), user_data[4]))
+    SQL_DATABASE_CONNECTION.commit()        
+        
 # SQL Database Connection
 
 SQL_DATABASE_CONNECTION = mysql.connector.connect(
@@ -97,8 +159,8 @@ def set_session_cookie(response):
 @app.route("/")
 @app.route("/home")
 def index():
-    if g.user.session.get("isLoggedIn"):
-        return f"Hello, you are logged in using {g.user.session.get('loginMethod')}, session created at {str(g.user.session.get('sessionCreatedAt'))} and your oauth data is  {str(g.user.session.get('userData'))})"
+    if g.user.session.get("loggedIn"):
+        return f"Hello, {g.user.session.get('userName')}, session created at {g.user.session.get('sessionCreatedAt')} and your profile ID is {g.user.session.get('profileID')} and your profile image URL is {g.user.session.get('profileImageURL')}"
     return f"Hello, you are not logged in, session created at " + str(g.user.session.get("sessionCreatedAt"))
 
 
@@ -208,10 +270,53 @@ def oauth_callback_github():
                 github_user["email"] = email.get("email")
                 break
             
-    g.user.set("userData", github_user)
-    g.user.set("isLoggedIn", True)
-    g.user.set("loginMethod", "GITHUB")
-    return redirect(url_for("index"))                                     
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (github_user.get("email"),))
+    
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+        
+    if user_data is None:
+        try:
+            profileID = generate_profile_id()
+
+            SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    (generate_username(github_user.get("name")), 
+                                     github_user.get("name").split(" ")[0].title(), 
+                                     github_user.get("name").split(" ")[1].title() if len(github_user.get("name").split(" ")) > 1 else "", 
+                                     github_user.get("email").lower(), 
+                                     get_country_from_ip(g.user.session.get("createdIPAddress")), 
+                                     "USER", 
+                                     f"https://cdn.projectrexa.dedyn.io/projectrexa/user-content/avatars/{profileID}.png",
+                                     "GITHUB", 
+                                     True, 
+                                     profileID
+                                    ))
+            
+            SQL_DATABASE_CONNECTION.commit()
+            
+        except Exception as error:
+            SQL_DATABASE_CONNECTION.rollback()
+
+        
+        
+        
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (github_user.get("email"),))
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+    
+    try:
+        profile_picture_data = requests.get(github_user.get("avatar_url"), timeout=3).content
+        requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
+    except:
+        pass
+    
+    login_user(user_data)
+    
+    
+    return redirect(url_for("index"))
+    
+    
+    
+                                                             
 
 @app.route("/oauth-callback/google")
 def oauth_callback_google():
@@ -257,9 +362,7 @@ def oauth_callback_discord():
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
     discord_user = requests.get("https://discord.com/api/users/@me", headers={"Authorization": f"Bearer {discord_token}"}, timeout=3)
-    
-    print(discord_user)
-    
+        
     if discord_user.status_code != 200:
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
@@ -283,17 +386,13 @@ def oauth_callback_reddit():
     
     oauth_code = request.args.get("code")
     
-    reddit_token = requests.post('https://www.reddit.com/api/v1/access_token', data={'grant_type': 'authorization_code', 'code': oauth_code, 'redirect_uri': CONFIG.REDDIT_REDIRECT_URI}, auth=(CONFIG.REDDIT_CLIENT_ID, CONFIG.REDDIT_CLIENT_SECRET), timeout=3).json()
-    
-    print(reddit_token)
-        
+    reddit_token = requests.post('https://www.reddit.com/api/v1/access_token', data={'grant_type': 'authorization_code', 'code': oauth_code, 'redirect_uri': CONFIG.REDDIT_REDIRECT_URI}, auth=(CONFIG.REDDIT_CLIENT_ID, CONFIG.REDDIT_CLIENT_SECRET), timeout=3).json().get("access_token")
+            
     if reddit_token is None:
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
     reddit_user = requests.get("https://oauth.reddit.com/api/v1/me", headers={"Authorization": f"Bearer {reddit_token}", "User-Agent": "ProjectRexa"}, timeout=3)
-    
-    print(reddit_user)
-    
+        
     if reddit_user.status_code != 200:
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
