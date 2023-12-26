@@ -354,7 +354,7 @@ def oauth_callback_github():
     try:
         profile_picture_data = requests.get(github_user.get("avatar_url"), timeout=3).content
         print(requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY, 'cf-identity': 'RqauQSGYqhW0j8x6Q9G7v'}, timeout=5).json())
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY, 'cf-identity': 'RqauQSGYqhW0j8x6Q9G7v'}, timeout=5).text)
     except:
         pass
     
