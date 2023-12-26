@@ -408,6 +408,8 @@ def oauth_callback_discord():
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
     discord_user = discord_user.json()
+
+    print(discord_user)
     
     SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (discord_user.get("email"),))
 
@@ -439,10 +441,12 @@ def oauth_callback_discord():
 
     user_data = SQL_DATABASE_CURSOR.fetchone()
 
+    print(user_data)
+
     try:
         profile_picture_data = requests.get(f"https://cdn.discordapp.com/avatars/{discord_user.get('id')}/{discord_user.get('avatar')}.png", timeout=3).content
-        requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
+        print(requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5).text)
     except:
         pass
 
