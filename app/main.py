@@ -24,7 +24,6 @@ class CONFIG:
         GITHUB_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("GITHUB_REDIRECT_URI")
         GOOGLE_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("GOOGLE_REDIRECT_URI")
         DISCORD_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("DISCORD_REDIRECT_URI")
-        REDDIT_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("REDDIT_REDIRECT_URI")
         
         
         
@@ -35,7 +34,6 @@ class CONFIG:
         GITHUB_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("GITHUB_REDIRECT_URI")
         GOOGLE_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("GOOGLE_REDIRECT_URI")
         DISCORD_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("DISCORD_REDIRECT_URI")
-        REDDIT_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv("REDDIT_REDIRECT_URI")
         
     APPLICATION_SECRET_KEY = os.getenv("APPLICATION_SECRET_KEY")
     
@@ -51,7 +49,7 @@ class CONFIG:
     RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY")
     RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
     
-    AUTHENTICATION_METHODS = ["EMAIL", "GITHUB", "GOOGLE", "DISCORD", "REDDIT"]
+    AUTHENTICATION_METHODS = ["EMAIL", "GITHUB", "GOOGLE", "DISCORD"]
     
     GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
@@ -64,9 +62,7 @@ class CONFIG:
     
     TWITTER_CLIENT_ID = os.getenv("TWITTER_CLIENT_ID")
     TWITTER_CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET")
-    
-    REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
-    REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
+
 
     
     
@@ -124,7 +120,7 @@ def generate_username(name):
 
         if SQL_DATABASE_CURSOR.rowcount == 0:
             return username
-        username = username + str(secrets.randbelow(9))
+        username = username + "-" + "".join(random.choices(string.ascii_lowercase, k=4))
         
 def get_country_from_ip(ip_address):
     try:
@@ -291,18 +287,6 @@ def oauth_initiater_discord():
     
     return redirect(f"https://discord.com/api/oauth2/authorize?client_id={CONFIG.DISCORD_CLIENT_ID}&redirect_uri={CONFIG.DISCORD_REDIRECT_URI}&response_type=code&scope=identify%20email&state={oauth_state}"), 302
 
-@app.route("/oauth-initiater/reddit")
-def oauth_initiater_reddit():
-    if request.args.get("next") is not None:
-        g.user.set("next", request.args.get("next"))
-    
-    if g.user.session.get("isLoggedIn"):
-        return redirect(url_for("index"))
-    
-    oauth_state = secrets.token_urlsafe(32)
-    g.user.set("oauthState", oauth_state, expire=300)
-    
-    return redirect(f"https://www.reddit.com/api/v1/authorize?client_id={CONFIG.REDDIT_CLIENT_ID}&response_type=code&state={oauth_state}&redirect_uri={CONFIG.REDDIT_REDIRECT_URI}&duration=permanent&scope=identity"), 302
 
 # OAuth Callbacks
 
@@ -402,8 +386,6 @@ def oauth_callback_google():
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
     google_user = requests.get("https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=" + google_token, timeout=3).json()
-
-    print(google_user)
         
     SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (google_user.get("email"),))
 
@@ -438,12 +420,10 @@ def oauth_callback_google():
 
     try:
         profile_picture_data = requests.get(google_user.get("picture"), timeout=3).content
-        print(requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5).text)
+        requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
     except:
         pass
-
-    print(user_data)
 
     login_user(user_data)
 
@@ -473,8 +453,6 @@ def oauth_callback_discord():
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
     discord_user = discord_user.json()
-
-    print(discord_user)
     
     SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (discord_user.get("email"),))
 
@@ -506,76 +484,8 @@ def oauth_callback_discord():
 
     user_data = SQL_DATABASE_CURSOR.fetchone()
 
-    print(user_data)
-
     try:
         profile_picture_data = requests.get(f"https://cdn.discordapp.com/avatars/{discord_user.get('id')}/{discord_user.get('avatar')}.png", timeout=3).content
-        print(requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5).text)
-    except:
-        pass
-
-    login_user(user_data)
-
-    return redirect(url_for("index"))
-
-@app.route("/oauth-callback/reddit")
-def oauth_callback_reddit():
-    if request.args.get("state") != g.user.session.get("oauthState"):
-        return {"status": "error", "message": "Invalid OAuth State"}, 400
-    
-    # Delete oauthState from session
-    g.user.session.pop("oauthState")
-    
-    if request.args.get("code") is None:
-        return {"status": "error", "message": "Invalid OAuth Code"}, 400
-    
-    oauth_code = request.args.get("code")
-    
-    reddit_token = requests.post('https://www.reddit.com/api/v1/access_token', data={'grant_type': 'authorization_code', 'code': oauth_code, 'redirect_uri': CONFIG.REDDIT_REDIRECT_URI}, auth=(CONFIG.REDDIT_CLIENT_ID, CONFIG.REDDIT_CLIENT_SECRET), timeout=3).json().get("access_token")
-            
-    if reddit_token is None:
-        return {"status": "error", "message": "Invalid OAuth Code"}, 400
-    
-    reddit_user = requests.get("https://oauth.reddit.com/api/v1/me", headers={"Authorization": f"Bearer {reddit_token}", "User-Agent": "ProjectRexa"}, timeout=3)
-        
-    if reddit_user.status_code != 200:
-        return {"status": "error", "message": "Invalid OAuth Code"}, 400
-    
-    reddit_user = reddit_user.json()
-    
-    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (reddit_user.get("email"),))
-
-    user_data = SQL_DATABASE_CURSOR.fetchone()
-
-    if user_data is None:
-        try:
-            profileID = generate_profile_id()
-
-            SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                    (generate_username(reddit_user.get("name")), 
-                                     reddit_user.get("name"), 
-                                     "", 
-                                     reddit_user.get("email").lower(), 
-                                     get_country_from_ip(g.user.session.get("createdIPAddress")), 
-                                     "USER", 
-                                     f"https://cdn.projectrexa.dedyn.io/projectrexa/user-content/avatars/{profileID}.png",
-                                     "REDDIT", 
-                                     True, 
-                                     profileID
-                                    ))
-            
-            SQL_DATABASE_CONNECTION.commit()
-            
-        except Exception as error:
-            SQL_DATABASE_CONNECTION.rollback()
-
-    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (reddit_user.get("email"),))
-
-    user_data = SQL_DATABASE_CURSOR.fetchone()
-
-    try:
-        profile_picture_data = requests.get(reddit_user.get("icon_img").replace("amp;", ""), timeout=3).content
         requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
                                     'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
     except:
