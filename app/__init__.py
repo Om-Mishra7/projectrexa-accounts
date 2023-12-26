@@ -337,10 +337,51 @@ def oauth_callback_google():
         return {"status": "error", "message": "Invalid OAuth Code"}, 400
     
     google_user = requests.get("https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=" + google_token, timeout=3).json()
+
+    print(google_user)
         
-    g.user.set("userData", google_user)
-    g.user.set("isLoggedIn", True)
-    g.user.set("loginMethod", "GOOGLE")
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (google_user.get("email"),))
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is None:
+        try:
+            profileID = generate_profile_id()
+
+            SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    (generate_username(google_user.get("name")), 
+                                     google_user.get("given_name"), 
+                                     google_user.get("family_name"), 
+                                     google_user.get("email").lower(), 
+                                     get_country_from_ip(g.user.session.get("createdIPAddress")), 
+                                     "USER", 
+                                     f"https://cdn.projectrexa.dedyn.io/projectrexa/user-content/avatars/{profileID}.png",
+                                     "GOOGLE", 
+                                     True, 
+                                     profileID
+                                    ))
+            
+            SQL_DATABASE_CONNECTION.commit()
+            
+        except Exception as error:
+            SQL_DATABASE_CONNECTION.rollback()
+
+    
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (google_user.get("email"),))
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+
+    try:
+        profile_picture_data = requests.get(google_user.get("picture"), timeout=3).content
+        print(requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5).text)
+    except:
+        pass
+
+    print(user_data)
+
+    login_user(user_data)
+
     return redirect(url_for("index"))
 
 @app.route("/oauth-callback/discord")
@@ -368,9 +409,45 @@ def oauth_callback_discord():
     
     discord_user = discord_user.json()
     
-    g.user.set("userData", discord_user)
-    g.user.set("isLoggedIn", True)
-    g.user.set("loginMethod", "DISCORD")
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (discord_user.get("email"),))
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is None:
+        try:
+            profileID = generate_profile_id()
+
+            SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    (generate_username(discord_user.get("username")), 
+                                     discord_user.get("username"), 
+                                     "", 
+                                     discord_user.get("email").lower(), 
+                                     get_country_from_ip(g.user.session.get("createdIPAddress")), 
+                                     "USER", 
+                                     f"https://cdn.projectrexa.dedyn.io/projectrexa/user-content/avatars/{profileID}.png",
+                                     "DISCORD", 
+                                     True, 
+                                     profileID
+                                    ))
+            
+            SQL_DATABASE_CONNECTION.commit()
+            
+        except Exception as error:
+            SQL_DATABASE_CONNECTION.rollback()
+
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (discord_user.get("email"),))
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    try:
+        profile_picture_data = requests.get(f"https://cdn.discordapp.com/avatars/{discord_user.get('id')}/{discord_user.get('avatar')}.png", timeout=3).content
+        requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
+    except:
+        pass
+
+    login_user(user_data)
+
     return redirect(url_for("index"))
 
 @app.route("/oauth-callback/reddit")
@@ -398,9 +475,45 @@ def oauth_callback_reddit():
     
     reddit_user = reddit_user.json()
     
-    g.user.set("userData", reddit_user)
-    g.user.set("isLoggedIn", True)
-    g.user.set("loginMethod", "REDDIT")
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (reddit_user.get("email"),))
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is None:
+        try:
+            profileID = generate_profile_id()
+
+            SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    (generate_username(reddit_user.get("name")), 
+                                     reddit_user.get("name"), 
+                                     "", 
+                                     reddit_user.get("email").lower(), 
+                                     get_country_from_ip(g.user.session.get("createdIPAddress")), 
+                                     "USER", 
+                                     f"https://cdn.projectrexa.dedyn.io/projectrexa/user-content/avatars/{profileID}.png",
+                                     "REDDIT", 
+                                     True, 
+                                     profileID
+                                    ))
+            
+            SQL_DATABASE_CONNECTION.commit()
+            
+        except Exception as error:
+            SQL_DATABASE_CONNECTION.rollback()
+
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (reddit_user.get("email"),))
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    try:
+        profile_picture_data = requests.get(reddit_user.get("icon_img").replace("amp;", ""), timeout=3).content
+        requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
+    except:
+        pass
+
+    login_user(user_data)
+
     return redirect(url_for("index"))
 
 if __name__ == '__main__':
