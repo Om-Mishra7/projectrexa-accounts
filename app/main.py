@@ -354,7 +354,7 @@ def oauth_callback_github():
     try:
         profile_picture_data = requests.get(github_user.get("avatar_url"), timeout=3).content
         print(requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5).text)
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY, 'cf-identity': 'RqauQSGYqhW0j8x6Q9G7v'}, timeout=5).json())
     except:
         pass
     
@@ -421,7 +421,7 @@ def oauth_callback_google():
     try:
         profile_picture_data = requests.get(google_user.get("picture"), timeout=3).content
         requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY, 'cf-identity': 'RqauQSGYqhW0j8x6Q9G7v'}, timeout=5)
     except:
         pass
 
@@ -487,7 +487,7 @@ def oauth_callback_discord():
     try:
         profile_picture_data = requests.get(f"https://cdn.discordapp.com/avatars/{discord_user.get('id')}/{discord_user.get('avatar')}.png", timeout=3).content
         requests.post("https://ather.api.projectrexa.dedyn.io/upload", files={'file': profile_picture_data}, data={
-                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY}, timeout=5)
+                                    'key': f'projectrexa/user-content/avatars/{user_data[16]}.png', 'content_type': 'image/png', 'public': 'true'}, headers={'X-Authorization': CONFIG.ATHER_API_KEY, 'cf-identity': 'RqauQSGYqhW0j8x6Q9G7v'}, timeout=5)
     except:
         pass
 
