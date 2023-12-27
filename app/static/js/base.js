@@ -5,12 +5,16 @@ document.onreadystatechange = function () {
         let alertType = new URLSearchParams(window.location.search).get('alertType');
 
         if (alert) {
-            let alertMessage = document.getElementById('alert-message');
-            alertMessage.innerHTML = alert;
-
-            alertMessage.classList.add('alert-' + alertType);
-
-            document.getElementById('alert-container').setAttribute('style', 'display: block');
+            createAlert(alert, alertType);
         }
     }
+}
+
+createAlert = function (alert, alertType) {
+    let alertMessage = document.getElementById('alert-message');
+    alertMessage.innerHTML = alert;
+
+    alertMessage.classList.add('alert-' + alertType);
+
+    document.getElementById('alert-container').setAttribute('style', 'display: block');
 }

@@ -124,9 +124,10 @@ def generate_username(name):
         
 def get_country_from_ip(ip_address):
     try:
-        request = requests.get(f"https://ipapi.co/{ip_address}/country_name/", timeout=3).text
+        request = requests.get(f"http://ip-api.com/json/{ip_address}?fields=status,countryCode", timeout=3)
         if request.status_code == 200:
-            return request.text.lower()
+            if request.json().get("status") == "success":
+                return request.json().get("countryCode")
         return "Undefined"
     except:
         return "Undefined"
@@ -494,6 +495,35 @@ def oauth_callback_discord():
     login_user(user_data)
 
     return redirect(url_for("index"))
+
+@app.route("/api/v1/sign-in", methods=["POST"])
+def api_sign_in():
+    if request.json.get("email") is None or request.json.get("password") is None:
+        return {"status": "error", "message": "Invalid Request"}, 400
+    
+    SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (request.json.get("email").lower(),))
+    
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+    
+    if user_data is None:
+        return {"status": "error", "message": "No account has been registered with this email address"}, 400
+    
+    if not user_data[10]:
+        return {"status": "error", "message": "Email address is not yet verified, <a href='/resend-verification-email'>click here</a> to resend verification email"}, 400
+    
+    if user_data[14] != "EMAIL":
+        return {"status": "error", "message": "This email address is associated with a different sign in method"}, 400
+    
+    if not user_data[11]:
+        return {"status": "error", "message": "Your account has been disabled, <a href='/contact'>click here</a> to contact us"}, 400
+    
+    if user_data[8] != request.json.get("password"):
+        return {"status": "error", "message": "Incorrect password, <a href='/forgot-password'>click here</a> to reset your password"}, 400
+    
+    login_user(user_data)
+    
+    return {"status": "success", "message": "Logged In Successfully", redirect: url_for("index")}, 200
+
 
 if __name__ == '__main__':
     app.run(debug=CONFIG.DEBUG,)

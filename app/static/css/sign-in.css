@@ -1,5 +1,6 @@
 body {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
@@ -56,7 +57,8 @@ main {
 }
 
 
-.discord-logo, .reddit-logo {
+.discord-logo,
+.reddit-logo {
     width: 28px !important;
     height: 28px !important;
     object-fit: contain;
