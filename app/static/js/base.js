@@ -11,7 +11,6 @@ document.onreadystatechange = function () {
 }
 
 function createAlert(alert, alertType = "info") {
-    console.log(alert);
     let alertContainer = document.getElementById('alert-container');
     let alertElement = document.getElementById('alert');
 

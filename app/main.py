@@ -1,5 +1,6 @@
 import pickle
 import datetime
+import bcrypt
 import random
 import string
 import requests 
@@ -169,7 +170,15 @@ def verify_recaptcha(response):
         return False
     except:
         return False   
-        
+
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+
+def verify_hashed_password(password, hashed_password):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+
+
 # SQL Database Connection
 
 SQL_DATABASE_CONNECTION = mysql.connector.connect(
@@ -243,6 +252,16 @@ def sign_in():
                 return redirect(url_for(f"oauth_initiater_{request.args.get('method').lower()}")), 302
 
     return render_template("sign_in.html", methods= CONFIG.AUTHENTICATION_METHODS)
+
+@app.route("/sign-up")
+def sign_up():
+    if request.args.get("next") is not None:
+        g.user.set("next", request.args.get("next"))
+    
+    if g.user.session.get("isLoggedIn"):
+        return redirect(url_for("index"))
+    
+    return render_template("sign_up.html", methods= CONFIG.AUTHENTICATION_METHODS)
 
 @app.route("/sign-out")
 def sign_out():
@@ -366,11 +385,8 @@ def oauth_callback_github():
     login_user(user_data)
     
     
-    return redirect(url_for("index"))
-    
-    
-    
-                                                             
+    return redirect(g.user.session.get("next")) if g.user.session.get("next") else redirect(url_for("index"))
+                                                                
 
 @app.route("/oauth-callback/google")
 def oauth_callback_google():
@@ -432,7 +448,7 @@ def oauth_callback_google():
 
     login_user(user_data)
 
-    return redirect(url_for("index"))
+    return redirect(g.user.session.get("next")) if g.user.session.get("next") else redirect(url_for("index"))
 
 @app.route("/oauth-callback/discord")
 def oauth_callback_discord():
@@ -498,7 +514,7 @@ def oauth_callback_discord():
 
     login_user(user_data)
 
-    return redirect(url_for("index"))
+    return redirect(g.user.session.get("next")) if g.user.session.get("next") else redirect(url_for("index"))
 
 
 # API Endpoints
@@ -508,6 +524,9 @@ def api_sign_in():
     if request.json.get("email") is None or request.json.get("password") is None or request.json.get("reCaptchaResponse") is None:
         return {"status": "error", "message": "The request is invalid or missing a required parameter"}, 400
     
+    if not verify_recaptcha(request.json.get("reCaptchaResponse")):
+        return {"status": "error", "message": "Invalid reCAPTCHA response"}, 400
+       
     SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (request.json.get("email").lower(),))
     
     user_data = SQL_DATABASE_CURSOR.fetchone()
@@ -521,15 +540,61 @@ def api_sign_in():
     if user_data[14] != "EMAIL":
         return {"status": "error", "message": "This email address is associated with a different sign in method"}, 400
     
-    if not user_data[11]:
-        return {"status": "error", "message": "Your account has been disabled, <a href='/contact'>click here</a> to contact us"}, 400
-    
-    if user_data[8] != request.json.get("password"):
+    user_password  = request.json.get("password")
+    if not verify_hashed_password(user_password, user_data[5]):
         return {"status": "error", "message": "Incorrect password, <a href='/forgot-password'>click here</a> to reset your password"}, 400
+        
+
+    if user_data[10] != "Active":
+        return {"status": "error", "message": f"Your account has been {user_data[10].lower()}, <a href='/contact'>click here</a> to contact us"}, 400
+    
+    if not verify_hashed_password(request.json.get("password"), user_data[5]):
+        return {"status": "error", "message": "Incorrect password, <a href='/forgot-password'>click here</a> to reset your password"}, 400
+    
     
     login_user(user_data)
     
-    return {"status": "success", "message": "Logged In Successfully", redirect: url_for("index")}, 200
+    return {"status": "success", "message": "Signed In Successfully", "redirect": g.user.session.get("next") if g.user.session.get("next") else url_for("index")}, 200
+
+@app.route("/api/v1/sign-up", methods=["POST"])
+def api_sign_up():
+    if request.json.get("firstName") or request.json.get("lastName") or request.json.get("email") is None or request.json.get("password") is None or request.json.get("reCaptchaResponse"):
+        
+        if not verify_recaptcha(request.json.get("reCaptchaResponse")):
+            return {"status": "error", "message": "Invalid reCAPTCHA response"}, 400
+        
+        SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (request.json.get("email").lower(),))
+        
+        user_data = SQL_DATABASE_CURSOR.fetchone()
+        
+        if user_data is not None:
+            return {"status": "error", "message": "An account has already been registered with this email address"}, 400
+        
+        try:
+            profileID = generate_profile_id()
+            
+            SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, PasswordHash, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    (generate_username(request.json.get("firstName") + " " + request.json.get("lastName")), 
+                                     request.json.get("firstName").title(), 
+                                     request.json.get("lastName").title(), 
+                                     request.json.get("email").lower(),
+                                     hash_password(request.json.get("password")),
+                                     get_country_from_ip(request.remote_addr), 
+                                     "USER", 
+                                     f"https://cdn.projectrexa.dedyn.io/projectrexa/user-content/avatars/default-avatar.png",
+                                     "EMAIL", 
+                                     False, 
+                                     profileID
+                                    ))
+            
+            SQL_DATABASE_CONNECTION.commit()
+            
+        except Exception as error:
+            print(error)
+            SQL_DATABASE_CONNECTION.rollback()
+            return {"status": "error", "message": "An error occurred while creating your account"}, 500
+        
+        return {"status": "success", "message": "Account Created Successfully", "redirect": url_for("sign_in")}, 200
 
 
 if __name__ == '__main__':

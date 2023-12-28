@@ -62,7 +62,7 @@ body {
 
 .alert {
     position: relative;
-    padding: 15px;
+    padding: 13px;
     border-radius: 5px;
     display: flex;
     align-items: center;
