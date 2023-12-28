@@ -10,11 +10,47 @@ document.onreadystatechange = function () {
     }
 }
 
-createAlert = function (alert, alertType) {
+function createAlert(alert, alertType = "info") {
+    console.log(alert);
+    let alertContainer = document.getElementById('alert-container');
+    let alertElement = document.getElementById('alert');
+
+    if (alertContainer.style.display !== 'none') {
+        alertElement.style.opacity = '0';
+        alertContainer.classList.remove('active');
+    }
+
     let alertMessage = document.getElementById('alert-message');
     alertMessage.innerHTML = alert;
 
-    alertMessage.classList.add('alert-' + alertType);
+    alertElement.classList.add('alert-' + alertType);
+    alertContainer.classList.add('active');
+    alertElement.style.opacity = '1';
 
-    document.getElementById('alert-container').setAttribute('style', 'display: block');
+    setTimeout(function () {
+        alertElement.style.opacity = '0';
+        alertContainer.classList.remove('active');
+    }
+        , 3000);
+}
+
+function closeAlert() {
+    let alertContainer = document.getElementById('alert-container');
+    alertContainer.classList.remove('active');
+}
+
+
+function generateReCaptcha(actionName) {
+    return new Promise(function (resolve, reject) {
+        grecaptcha.ready(function () {
+            grecaptcha.execute('6LdINlonAAAAAK5yArQKUqdHU7sIM8lWD_t_ttOU', { action: actionName })
+                .then(function (token) {
+                    resolve(token);
+                })
+                .catch(function (error) {
+                    createAlert("Unable to generate reCaptcha token, please refresh the page and try again", 'danger');
+                    reject(error);
+                });
+        });
+    });
 }

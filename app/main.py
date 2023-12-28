@@ -62,16 +62,7 @@ class CONFIG:
     
     TWITTER_CLIENT_ID = os.getenv("TWITTER_CLIENT_ID")
     TWITTER_CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET")
-
-
     
-    
-
-    
-    
-        
-
-
 # User Class
 
 class User:
@@ -165,6 +156,19 @@ def login_user(user_data):
     
     SQL_DATABASE_CURSOR.execute("UPDATE Users SET LastLoginDate = %s WHERE Email = %s", (datetime.datetime.now(), user_data[4]))
     SQL_DATABASE_CONNECTION.commit()        
+
+def verify_recaptcha(response):
+    if response is None:
+        return False
+    
+    try:
+        request = requests.post("https://www.google.com/recaptcha/api/siteverify", data={"secret": CONFIG.RECAPTCHA_SECRET_KEY, "response": response}, timeout=3)
+        if request.status_code == 200:
+            if request.json().get("success"):
+                return True
+        return False
+    except:
+        return False   
         
 # SQL Database Connection
 
@@ -398,8 +402,8 @@ def oauth_callback_google():
 
             SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                                     (generate_username(google_user.get("name")), 
-                                     google_user.get("given_name"), 
-                                     google_user.get("family_name"), 
+                                     google_user.get("given_name").title(),
+                                     google_user.get("family_name").title(),
                                      google_user.get("email").lower(), 
                                      get_country_from_ip(g.user.session.get("createdIPAddress")), 
                                      "USER", 
@@ -466,7 +470,7 @@ def oauth_callback_discord():
             SQL_DATABASE_CURSOR.execute("INSERT INTO Users (Username, FirstName, LastName, Email, RegistrationCountry, AccountRole, ProfileImageURL, SignupMethod, EmailVerified, ProfileID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                                     (generate_username(discord_user.get("username")), 
                                      discord_user.get("username"), 
-                                     "", 
+                                     "User", 
                                      discord_user.get("email").lower(), 
                                      get_country_from_ip(g.user.session.get("createdIPAddress")), 
                                      "USER", 
@@ -496,10 +500,13 @@ def oauth_callback_discord():
 
     return redirect(url_for("index"))
 
+
+# API Endpoints
+
 @app.route("/api/v1/sign-in", methods=["POST"])
 def api_sign_in():
-    if request.json.get("email") is None or request.json.get("password") is None:
-        return {"status": "error", "message": "Invalid Request"}, 400
+    if request.json.get("email") is None or request.json.get("password") is None or request.json.get("reCaptchaResponse") is None:
+        return {"status": "error", "message": "The request is invalid or missing a required parameter"}, 400
     
     SQL_DATABASE_CURSOR.execute("SELECT * FROM Users WHERE email = %s", (request.json.get("email").lower(),))
     
