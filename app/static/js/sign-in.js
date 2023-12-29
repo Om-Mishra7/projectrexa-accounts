@@ -65,7 +65,7 @@ function handleResetPassword() {
     generateReCaptcha('reset_password')
         .then(function (reCaptchaResponse) {
             // The fetch request
-            return fetch('/api/v1/reset-password', {
+            return fetch('/api/v1/forgot-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

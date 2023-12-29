@@ -999,6 +999,62 @@ def api_sign_up():
     }, 200
 
 
+@app.route("/api/v1/forgot-password", methods=["POST"])
+def api_forgot_password():
+    if (
+        request.json.get("email") is None
+        or request.json.get("reCaptchaResponse") is None
+    ):
+        return {
+            "status": "error",
+            "message": "The request is invalid or missing a required parameter",
+        }, 400
+
+    if not verify_recaptcha(request.json.get("reCaptchaResponse")):
+        return {"status": "error", "message": "Invalid reCAPTCHA response"}, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM Users WHERE Email = %s", (request.json.get("email").lower(),)
+    )
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is None:
+        return {
+            "status": "error",
+            "message": "No account has been registered with this email address",
+        }, 400
+
+    PASSWORD_RESET_TOKEN = secrets.token_urlsafe(32)
+
+    SQL_DATABASE_CURSOR.execute(
+        "INSERT INTO Tokens (TokenValue, TokenIssuedTo, TokenAuthority, TokenUsed) VALUES (%s, %s, %s, %s)",
+        (
+            PASSWORD_RESET_TOKEN,
+            request.json.get("email").lower(),
+            "PASSWORD_RESET",
+            False,
+        ),
+    )
+
+    if not send_email(
+        request.json.get("email").lower(),
+        user_data[2] + " " + user_data[3],
+        "user-password-reset",
+        PASSWORD_RESET_TOKEN,
+    ):
+        return {
+            "status": "error",
+            "message": "Our internal services are facing some issues, please try again later",
+        }, 500
+
+    return {
+        "status": "success",
+        "message": "A password reset instructions has been sent to your email address",
+        "redirect": url_for("sign_in"),
+    }, 200
+
+
 @app.route("/api/v1/reset-password", methods=["POST"])
 def api_reset_password():
     if (
