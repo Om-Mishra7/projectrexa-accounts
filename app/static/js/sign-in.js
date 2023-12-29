@@ -4,7 +4,7 @@ function handleEmailSignIn(event) {
     var password = document.getElementById('password').value;
 
     if (email == '' || password == '') {
-        createAlert('Email/Password fields cannot be empty', 'danger');
+        createAlert('Email or password field is empty, fill them up and try again', 'danger');
         return;
     }
 

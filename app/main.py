@@ -854,7 +854,7 @@ def api_sign_in():
             "message": "No account has been registered with this email address",
         }, 400
 
-    if not user_data[10]:
+    if not user_data[15]:
         return {
             "status": "error",
             "message": "Email address is not yet verified, <a href='/resend-verification-email'>click here</a> to resend verification email",
@@ -1002,27 +1002,39 @@ def api_sign_up():
 @app.route("/api/v1/reset-password", methods=["POST"])
 def api_reset_password():
     if (
-        request.json.get("email") is None
+        request.json.get("password") is None
         or request.json.get("reCaptchaResponse") is None
+        or request.json.get("token") is None
     ):
         return {
             "status": "error",
             "message": "The request is invalid or missing a required parameter",
         }, 400
 
-    request.json["email"] = sanitize_useremail(request.json.get("email").lower())
-
-    if not re.match(r"[^@]+@[^@]+\.[^@]+", request.json.get("email")):
-        return {
-            "status": "error",
-            "message": "The email address provided was invalid, check the email address and try again",
-        }, 400
-
     if not verify_recaptcha(request.json.get("reCaptchaResponse")):
         return {"status": "error", "message": "Invalid reCAPTCHA response"}, 400
 
     SQL_DATABASE_CURSOR.execute(
-        "SELECT * FROM Users WHERE email = %s", (request.json.get("email").lower(),)
+        "SELECT * FROM Tokens WHERE TokenValue = %s AND TokenAuthority = %s AND TokenUsed = %s",
+        (request.json.get("token"), "PASSWORD_RESET", False),
+    )
+
+    token_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if token_data is None:
+        return {
+            "status": "error",
+            "message": "The password reset link was invalid please make sure you copied the link correctly",
+        }, 400
+
+    if token_data[3] < (datetime.datetime.now() - datetime.timedelta(hours=24)):
+        return {
+            "status": "error",
+            "message": "The password reset link has expired, please request a new link",
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM Users WHERE Email = %s", (token_data[2],)
     )
 
     user_data = SQL_DATABASE_CURSOR.fetchone()
@@ -1030,22 +1042,25 @@ def api_reset_password():
     if user_data is None:
         return {
             "status": "error",
-            "message": "No account has been registered with this email address",
+            "message": "The password reset link was invalid please make sure you copied the link correctly",
         }, 400
 
-    PASSWORD_RESET_TOKEN = secrets.token_urlsafe(32)
+    try:
+        SQL_DATABASE_CURSOR.execute(
+            "UPDATE Users SET PasswordHash = %s WHERE Email = %s",
+            (hash_password(request.json.get("password")), token_data[2]),
+        )
 
-    SQL_DATABASE_CURSOR.execute(
-        "INSERT INTO Tokens (TokenValue, TokenIssuedTo, TokenAuthority, TokenUsed) VALUES (%s, %s, %s, %s)",
-        (PASSWORD_RESET_TOKEN, user_data[4], "PASSWORD_RESET", False),
-    )
+        SQL_DATABASE_CURSOR.execute(
+            "UPDATE Tokens SET TokenUsed = %s WHERE TokenValue = %s",
+            (True, request.json.get("token")),
+        )
 
-    if not send_email(
-        user_data[4],
-        user_data[2] + " " + user_data[3],
-        "user-password-reset",
-        PASSWORD_RESET_TOKEN,
-    ):
+        SQL_DATABASE_CONNECTION.commit()
+
+    except Exception as error:
+        SQL_DATABASE_CURSOR.rollback()
+
         return {
             "status": "error",
             "message": "Our internal services are facing some issues, please try again later",
@@ -1053,7 +1068,74 @@ def api_reset_password():
 
     return {
         "status": "success",
-        "message": "The password reset email has been sent successfully, check your inbox for further instructions",
+        "message": "The account password was reset successfully, please sign in with your new password",
+        "redirect": url_for("sign_in"),
+    }, 200
+
+
+@app.route("/api/v1/verify-email", methods=["GET"])
+def api_verify_email():
+    if request.args.get("token") is None:
+        return {
+            "status": "error",
+            "message": "The request is invalid or missing a required parameter",
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM Tokens WHERE TokenValue = %s AND TokenAuthority = %s AND TokenUsed = %s",
+        (request.args.get("token"), "EMAIL_VERIFICATION", False),
+    )
+
+    token_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if token_data is None:
+        return {
+            "status": "error",
+            "message": "The email verification link was invalid please make sure you copied the link correctly",
+        }, 400
+
+    if token_data[3] < (datetime.datetime.now() - datetime.timedelta(hours=24)):
+        return {
+            "status": "error",
+            "message": "The email verification link has expired, please request a new link",
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM Users WHERE Email = %s", (token_data[2],)
+    )
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is None:
+        return {
+            "status": "error",
+            "message": "The email verification link was invalid please make sure you copied the link correctly",
+        }, 400
+
+    try:
+        SQL_DATABASE_CURSOR.execute(
+            "UPDATE Users SET EmailVerified = %s WHERE Email = %s",
+            (True, token_data[2]),
+        )
+
+        SQL_DATABASE_CURSOR.execute(
+            "UPDATE Tokens SET TokenUsed = %s WHERE TokenValue = %s",
+            (True, request.args.get("token")),
+        )
+
+        SQL_DATABASE_CONNECTION.commit()
+
+    except Exception as error:
+        SQL_DATABASE_CURSOR.rollback()
+
+        return {
+            "status": "error",
+            "message": "Our internal services are facing some issues, please try again later",
+        }, 500
+
+    return {
+        "status": "success",
+        "message": "The account email address was verified successfully, please sign in to continue",
         "redirect": url_for("sign_in"),
     }, 200
 

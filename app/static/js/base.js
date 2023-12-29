@@ -12,13 +12,14 @@ document.onreadystatechange = function () {
 }
 
 function createAlert(alert, alertType = "info") {
-
     if (alertType === null) {
         alertType = "info";
     }
 
     let alertContainer = document.getElementById('alert-container');
     let alertElement = document.getElementById('alert');
+
+    clearTimeout(alertElement.timer);
 
     if (alertContainer.style.display !== 'none') {
         alertElement.style.opacity = '0';
@@ -33,13 +34,10 @@ function createAlert(alert, alertType = "info") {
     alertContainer.classList.add('active');
     alertElement.style.opacity = '1';
 
-    clearTimeout(alertElement.timer);
-
-    setTimeout(function () {
+    alertElement.timer = setTimeout(function () {
         alertElement.style.opacity = '0';
         alertContainer.classList.remove('active');
-    }
-        , 3000);
+    }, 3000);
 }
 
 function closeAlert() {

@@ -17,31 +17,36 @@ function handleResetPassword(event) {
     }
 
 
-    const data = {
-        password,
-        token
-    };
+    generateReCaptcha('reset_password')
+        .then((reCaptchaResponse) => {
 
-    fetch('/api/v1/auth/reset-password', {
-        method: 'PUT',
-        body: JSON.stringify(data),
-        headers: {
-            'Content-Type': 'application/json'
+            return fetch('/api/v1/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'token': token,
+                    'password': password,
+                    'reCaptchaResponse': reCaptchaResponse
+                })
+            })
         }
-    })
+        )
         .then((response) => {
-            if (response.status == 500) {
-                createAlert('There was an error while trying to reset your password, please try again later', 'danger');
+            if (response.status === 500) {
+                createAlert("Our internal services are facing some issues, you can check the status at https://status.projectrexa.dedyn.io", 'danger');
             }
-            else {
-                response.json().then((data) => {
-                    if (data.status === 'success') {
-                        window.location.replace(`/login?alert=${data.message}`);
-                    }
-                });
+            return response.json();
+        })
+        .then((data) => {
+            if (data.status === 'success') {
+                window.location.replace(`/sign-in?alert=${encodeURIComponent(data.message)}`);
+            } else {
+                createAlert(data.message, 'danger');
             }
         })
         .catch((error) => {
-            createAlert('There was an error while trying to reset your password, please try again later', 'danger');
+            createAlert(error.message || 'An error occurred, please refresh the page and try again.', 'danger');
         });
 }
