@@ -38,7 +38,7 @@ function handleEmailSignup(event) {
         .then(function (data) {
             // Handle success
             if (data.status === 'success') {
-                window.location.href = data.redirect;
+                window.location.href = `${data.redirect}?email=${email}`;
             } else {
                 createAlert(data.message, 'danger');
                 submitBtn.removeAttribute('disabled');

@@ -1,6 +1,7 @@
 document.onreadystatechange = function () {
     if (document.readyState == "complete") {
 
+
         let alert = new URLSearchParams(window.location.search).get('alert');
         let alertType = new URLSearchParams(window.location.search).get('alertType');
 
@@ -11,6 +12,11 @@ document.onreadystatechange = function () {
 }
 
 function createAlert(alert, alertType = "info") {
+
+    if (alertType === null) {
+        alertType = "info";
+    }
+
     let alertContainer = document.getElementById('alert-container');
     let alertElement = document.getElementById('alert');
 
@@ -22,9 +28,12 @@ function createAlert(alert, alertType = "info") {
     let alertMessage = document.getElementById('alert-message');
     alertMessage.innerHTML = alert;
 
+    alertElement.classList.remove('alert-success', 'alert-info', 'alert-warning', 'alert-danger');
     alertElement.classList.add('alert-' + alertType);
     alertContainer.classList.add('active');
     alertElement.style.opacity = '1';
+
+    clearTimeout(alertElement.timer);
 
     setTimeout(function () {
         alertElement.style.opacity = '0';

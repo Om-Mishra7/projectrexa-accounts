@@ -145,3 +145,26 @@ body {
     width: 20px;
     height: 20px;
 }
+
+.alert-danger a,
+.alert-warning a,
+.alert-success a,
+.alert-info a {
+    color: var(--color-primary-600);
+}
+
+.alert-danger a::before,
+.alert-warning a::before,
+.alert-success a::before,
+.alert-info a::before {
+    content: '[';
+    display: inline-block;
+}
+
+.alert-danger a::after,
+.alert-warning a::after,
+.alert-success a::after,
+.alert-info a::after {
+    content: ']';
+    display: inline-block;
+}
