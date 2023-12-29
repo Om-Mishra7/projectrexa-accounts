@@ -1293,7 +1293,7 @@ def api_oauth_authenticate():
     else:
         g.user.set(
             "next",
-            f"http://127.0.0.1:5000/api/v1/oauth/authenticate?applicationID={request.args.get('applicationID')}&requestState={request.args.get('requestState')}&redirectURI={request.args.get('redirectURI')}",
+            f"http://accounts.projectrexa.dedyn.io/api/v1/oauth/authenticate?applicationID={request.args.get('applicationID')}&requestState={request.args.get('requestState')}&redirectURI={request.args.get('redirectURI')}",
         )
         return redirect(url_for("sign_in"))
 
