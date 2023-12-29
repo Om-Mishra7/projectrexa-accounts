@@ -13,7 +13,7 @@ function handleEmailSignIn(event) {
     submitBtn.setAttribute('value', 'Signing in...');
     generateReCaptcha('sign_in')
         .then(function (reCaptchaResponse) {
-            // The fetch request
+    
             return fetch('/api/v1/sign-in', {
                 method: 'POST',
                 headers: {

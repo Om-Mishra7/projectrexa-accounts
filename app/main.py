@@ -116,7 +116,7 @@ def generate_session_id(session_ip_address=None):
                 pickle.dumps(
                     {
                         "sessionCreatedAt": datetime.datetime.now().timestamp(),
-                        "isLoggedIn": False,
+                        "loggedIn": False,
                         "createdIPAddress": session_ip_address,
                     }
                 ),
@@ -383,6 +383,9 @@ def index():
 
 @app.route("/sign-in")
 def sign_in():
+    if g.user.session.get("loggedIn"):
+        return redirect(url_for("index"))
+
     if request.args.get("next") is not None:
         g.user.set("next", request.args.get("next"))
 
@@ -406,7 +409,7 @@ def sign_up():
     if request.args.get("next") is not None:
         g.user.set("next", request.args.get("next"))
 
-    if g.user.session.get("isLoggedIn"):
+    if g.user.session.get("loggedIn"):
         return redirect(url_for("index"))
 
     return render_template("sign_up.html", methods=CONFIG.AUTHENTICATION_METHODS)
@@ -423,7 +426,7 @@ def reset_password():
     if request.args.get("next") is not None:
         g.user.set("next", request.args.get("next"))
 
-    if g.user.session.get("isLoggedIn"):
+    if g.user.session.get("loggedIn"):
         return redirect(url_for("index"))
 
     if request.args.get("token") is None:
@@ -446,7 +449,7 @@ def oauth_initiater_github():
     if request.args.get("next") is not None:
         g.user.set("next", request.args.get("next"))
 
-    if g.user.session.get("isLoggedIn"):
+    if g.user.session.get("loggedIn"):
         return redirect(url_for("index"))
 
     oauth_state = secrets.token_urlsafe(32)
@@ -465,7 +468,7 @@ def oauth_initiater_google():
     if request.args.get("next") is not None:
         g.user.set("next", request.args.get("next"))
 
-    if g.user.session.get("isLoggedIn"):
+    if g.user.session.get("loggedIn"):
         return redirect(url_for("index"))
 
     oauth_state = secrets.token_urlsafe(32)
@@ -484,7 +487,7 @@ def oauth_initiater_discord():
     if request.args.get("next") is not None:
         g.user.set("next", request.args.get("next"))
 
-    if g.user.session.get("isLoggedIn"):
+    if g.user.session.get("loggedIn"):
         return redirect(url_for("index"))
 
     oauth_state = secrets.token_urlsafe(32)
@@ -550,6 +553,16 @@ def oauth_callback_github():
     )
 
     user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is not None:
+        if user_data[14] != "GITHUB":
+            return redirect(
+                url_for(
+                    "sign_in",
+                    alert="This email address is associated with a different sign in method",
+                    alertType="danger",
+                )
+            )
 
     if user_data is None:
         try:
@@ -650,6 +663,16 @@ def oauth_callback_google():
     )
 
     user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is not None:
+        if user_data[14] != "GOOGLE":
+            return redirect(
+                url_for(
+                    "sign_in",
+                    alert="This email address is associated with a different sign in method",
+                    alertType="danger",
+                )
+            )
 
     if user_data is None:
         try:
@@ -761,6 +784,16 @@ def oauth_callback_discord():
     )
 
     user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is not None:
+        if user_data[14] != "DISCORD":
+            return redirect(
+                url_for(
+                    "sign_in",
+                    alert="This email address is associated with a different sign in method",
+                    alertType="danger",
+                )
+            )
 
     if user_data is None:
         try:
@@ -1025,6 +1058,11 @@ def api_forgot_password():
             "message": "No account has been registered with this email address",
         }, 400
 
+    SQL_DATABASE_CURSOR.execute(
+        "DELETE FROM Tokens WHERE TokenIssuedTo = %s AND TokenAuthority = %s",
+        (request.json.get("email").lower(), "PASSWORD_RESET"),
+    )
+
     PASSWORD_RESET_TOKEN = secrets.token_urlsafe(32)
 
     SQL_DATABASE_CURSOR.execute(
@@ -1108,8 +1146,7 @@ def api_reset_password():
         )
 
         SQL_DATABASE_CURSOR.execute(
-            "UPDATE Tokens SET TokenUsed = %s WHERE TokenValue = %s",
-            (True, request.json.get("token")),
+            "DELETE FROM Tokens WHERE TokenValue = %s", (request.json.get("token"),)
         )
 
         SQL_DATABASE_CONNECTION.commit()
@@ -1187,8 +1224,7 @@ def api_verify_email():
         )
 
         SQL_DATABASE_CURSOR.execute(
-            "UPDATE Tokens SET TokenUsed = %s WHERE TokenValue = %s",
-            (True, request.args.get("token")),
+            "DELETE FROM Tokens WHERE TokenValue = %s", (request.args.get("token"),)
         )
 
         SQL_DATABASE_CONNECTION.commit()
@@ -1211,6 +1247,148 @@ def api_verify_email():
             alertType="success",
         )
     )
+
+
+@app.route("/api/v1/oauth/authenticate", methods=["GET"])
+def api_oauth_authenticate():
+    if (
+        request.args.get("applicationID") is None
+        or request.args.get("requestState") is None
+        or request.args.get("redirectURI") is None
+    ):
+        return {
+            "status": "error",
+            "message": f"The oauth request failed due to missing parameter {request.args.get('applicationID') if request.args.get('applicationID') is None else request.args.get('requestState') if request.args.get('requestState') is None else request.args.get('redirectURI') if request.args.get('redirectURI') is None else ''}",
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM Applications WHERE ApplicationClientID = %s",
+        (request.args.get("applicationID"),),
+    )
+
+    application_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if application_data is None:
+        return {
+            "status": "error",
+            "message": "The oauth request failed due to invalid application ID",
+        }, 400
+
+    if g.user.session.get("loggedIn"):
+        oauth_token = secrets.token_urlsafe(32)
+
+        SQL_DATABASE_CURSOR.execute(
+            "INSERT INTO ApplicationTokens (ApplicationID, TokenValue, TokenAuthorizedAccount) VALUES (%s, %s, %s)",
+            (
+                request.args.get("applicationID"),
+                oauth_token,
+                g.user.session.get("userID"),
+            ),
+        )
+
+        return redirect(
+            f"{application_data[3]}?code={oauth_token}&state={request.args.get('requestState')}"
+        )
+
+    else:
+        g.user.set(
+            "next",
+            f"http://127.0.0.1:5000/api/v1/oauth/authenticate?applicationID={request.args.get('applicationID')}&requestState={request.args.get('requestState')}&redirectURI={request.args.get('redirectURI')}",
+        )
+        return redirect(url_for("sign_in"))
+
+
+@app.route("/api/v1/oauth/user", methods=["POST"])
+def api_oauth_user():
+    if (
+        request.json.get("token") is None
+        or request.json.get("applicationID") is None
+        or request.json.get("applicationSecret") is None
+    ):
+        return {
+            "status": "error",
+            "message": f"The oauth request failed due to missing parameter {request.json.get('token') if request.json.get('token') is None else request.json.get('applicationID') if request.json.get('applicationID') is None else request.json.get('applicationSecret') if request.json.get('applicationSecret') is None else ''}",
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM Applications WHERE ApplicationClientID = %s AND ApplicationClientSecret = %s",
+        (request.json.get("applicationID"), request.json.get("applicationSecret")),
+    )
+
+    application_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if application_data is None:
+        return {
+            "status": "error",
+            "message": "The oauth request failed due to invalid application ID or application secret",
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM ApplicationTokens WHERE TokenValue = %s AND ApplicationID = %s",
+        (request.json.get("token"), request.json.get("applicationID")),
+    )
+
+    token_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if token_data is None:
+        return {
+            "status": "error",
+            "message": "The oauth request failed due to an invalid token",
+        }, 400
+
+    if token_data[1] != request.json.get("applicationID"):
+        return {
+            "status": "error",
+            "message": "The oauth request failed due to an invalid token",
+        }, 400
+
+    if token_data[5] < (datetime.datetime.now() - datetime.timedelta(seconds=30)):
+        SQL_DATABASE_CURSOR.execute(
+            "DELETE FROM ApplicationTokens WHERE TokenValue = %s",
+            (request.json.get("token"),),
+        )
+
+        SQL_DATABASE_CONNECTION.commit()
+
+        return {
+            "status": "error",
+            "message": "The oauth request failed due to an expired token",
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT UserID, Username, FirstName, LastName, Email, AccountRole, ProfileImageURL FROM Users WHERE UserID = %s",
+    )
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is None:
+        return (
+            {
+                "status": "error",
+                "message": "The oauth request failed due to an invalid token",
+            },
+        )
+
+    SQL_DATABASE_CURSOR.execute(
+        "DELETE FROM ApplicationTokens WHERE TokenValue = %s",
+        (request.json.get("token"),),
+    )
+
+    SQL_DATABASE_CONNECTION.commit()
+
+    return {
+        "status": "success",
+        "message": "The oauth request was successful",
+        "user": {
+            "userID": user_data[0],
+            "userName": user_data[1],
+            "firstName": user_data[2],
+            "lastName": user_data[3],
+            "email": user_data[4],
+            "accountRole": user_data[5],
+            "profileImageURL": user_data[6],
+        },
+    }, 200
 
 
 if __name__ == "__main__":
