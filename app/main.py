@@ -1027,7 +1027,7 @@ def api_reset_password():
             "message": "The password reset link was invalid please make sure you copied the link correctly",
         }, 400
 
-    if token_data[3] < (datetime.datetime.now() - datetime.timedelta(hours=24)):
+    if token_data[5] < (datetime.datetime.now() - datetime.timedelta(hours=24)):
         return {
             "status": "error",
             "message": "The password reset link has expired, please request a new link",
@@ -1076,10 +1076,13 @@ def api_reset_password():
 @app.route("/api/v1/verify-email", methods=["GET"])
 def api_verify_email():
     if request.args.get("token") is None:
-        return {
-            "status": "error",
-            "message": "The request is invalid or missing a required parameter",
-        }, 400
+        return redirect(
+            url_for(
+                "sign_in",
+                alert="The email verification link was invalid please make sure you copied the link correctly",
+                alertType="info",
+            )
+        )
 
     SQL_DATABASE_CURSOR.execute(
         "SELECT * FROM Tokens WHERE TokenValue = %s AND TokenAuthority = %s AND TokenUsed = %s",
@@ -1089,16 +1092,22 @@ def api_verify_email():
     token_data = SQL_DATABASE_CURSOR.fetchone()
 
     if token_data is None:
-        return {
-            "status": "error",
-            "message": "The email verification link was invalid please make sure you copied the link correctly",
-        }, 400
+        return redirect(
+            url_for(
+                "sign_in",
+                alert="The email verification link was invalid please make sure you copied the link correctly",
+                alertType="info",
+            )
+        )
 
-    if token_data[3] < (datetime.datetime.now() - datetime.timedelta(hours=24)):
-        return {
-            "status": "error",
-            "message": "The email verification link has expired, please request a new link",
-        }, 400
+    if token_data[5] < (datetime.datetime.now() - datetime.timedelta(hours=24)):
+        return redirect(
+            url_for(
+                "sign_in",
+                alert="The email verification link has expired, please request a new link",
+                alertType="info",
+            )
+        )
 
     SQL_DATABASE_CURSOR.execute(
         "SELECT * FROM Users WHERE Email = %s", (token_data[2],)
@@ -1107,10 +1116,13 @@ def api_verify_email():
     user_data = SQL_DATABASE_CURSOR.fetchone()
 
     if user_data is None:
-        return {
-            "status": "error",
-            "message": "The email verification link was invalid please make sure you copied the link correctly",
-        }, 400
+        return redirect(
+            url_for(
+                "sign_in",
+                alert="The email verification link was invalid please make sure you copied the link correctly",
+                alertType="info",
+            )
+        )
 
     try:
         SQL_DATABASE_CURSOR.execute(
@@ -1128,16 +1140,21 @@ def api_verify_email():
     except Exception as error:
         SQL_DATABASE_CURSOR.rollback()
 
-        return {
-            "status": "error",
-            "message": "Our internal services are facing some issues, please try again later",
-        }, 500
+        return redirect(
+            url_for(
+                "sign_in",
+                alert="Our internal services are facing some issues, please try again later",
+                alertType="danger",
+            )
+        )
 
-    return {
-        "status": "success",
-        "message": "The account email address was verified successfully, please sign in to continue",
-        "redirect": url_for("sign_in"),
-    }, 200
+    return redirect(
+        url_for(
+            "sign_in",
+            alert="Your email address was verified successfully, please sign in to continue",
+            alertType="success",
+        )
+    )
 
 
 if __name__ == "__main__":
