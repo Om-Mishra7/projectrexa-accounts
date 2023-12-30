@@ -356,7 +356,7 @@ def set_session_cookie(response):
     return response
 
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
     if g.user.session.get("loggedIn"):
         return (
