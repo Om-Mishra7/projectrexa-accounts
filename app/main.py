@@ -348,6 +348,7 @@ def set_session_cookie(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "POST"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
     if g.user.session_id:
         response.set_cookie(
             "projectrexa-session",
