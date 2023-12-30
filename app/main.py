@@ -10,7 +10,8 @@ import secrets
 import re
 import os
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, g
+from flask import Flask, render_template, request, redirect, url_for, g, jsonify
+import uuid
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 
@@ -260,22 +261,6 @@ def send_email(recipient_email_address, recipient_name, template_name, token=Non
             user_name=recipient_name,
         )
 
-    elif template_name == "user-email-verification":
-        subject = f"Verify your email address | ProjectRexa"
-        sender = {
-            "name": "ProjectRexa Account Notifications",
-            "email": "noreply@projectrexa.dedyn.io",
-        }
-        to = [{"email": recipient_email_address, "name": recipient_name}]
-        reply_to = {
-            "email": "account@projectrexa.dedyn.io",
-            "name": "ProjectRexa Account Support",
-        }
-        html = render_template(
-            "email/organization-registration.html",
-            token=token,
-        )
-
     elif template_name == "user-password-reset":
         subject = f"Reset your password | ProjectRexa"
         sender = {
@@ -372,12 +357,27 @@ def set_session_cookie(response):
 
 
 @app.route("/")
-@app.route("/home")
 def index():
     if g.user.session.get("loggedIn"):
-        return f"Hello, {g.user.session.get('userName')}, session created at {g.user.session.get('sessionCreatedAt')} and your profile ID is {g.user.session.get('profileID')} and your profile image URL is {g.user.session.get('profileImageURL')}"
-    return f"Hello, you are not logged in, session created at " + str(
-        g.user.session.get("sessionCreatedAt")
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "You are logged in to your ProjectRexa Account",
+                    "requestID": uuid.uuid4().hex,
+                }
+            ),
+            200,
+        )
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "You are not logged in to your ProjectRexa Account",
+                "requestID": uuid.uuid4().hex,
+            }
+        ),
+        401,
     )
 
 
@@ -890,7 +890,7 @@ def api_sign_in():
     if not user_data[15]:
         return {
             "status": "error",
-            "message": "Email address is not yet verified, <a href='/resend-verification-email'>click here</a> to resend verification email",
+            "message": "Email address is not yet verified, <a onclick='handleResendVerificationEmail()' href='#'>click here</a> to resend the verification email",
         }, 400
 
     if user_data[14] != "EMAIL":
@@ -1249,6 +1249,81 @@ def api_verify_email():
     )
 
 
+@app.route("/api/v1/resend-verification-email", methods=["POST"])
+def api_resend_verification_email():
+    if (
+        request.json.get("email") is None
+        or request.json.get("reCaptchaResponse") is None
+    ):
+        return {
+            "status": "error",
+            "message": "The request is invalid or missing a required parameter",
+            "requestID": uuid.uuid4().hex,
+        }, 400
+
+    if not verify_recaptcha(request.json.get("reCaptchaResponse")):
+        return {
+            "status": "error",
+            "message": "Invalid reCAPTCHA response",
+            "requestID": uuid.uuid4().hex,
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "SELECT * FROM Users WHERE Email = %s", (request.json.get("email").lower(),)
+    )
+
+    user_data = SQL_DATABASE_CURSOR.fetchone()
+
+    if user_data is None:
+        return {
+            "status": "error",
+            "message": "No account has been registered with this email address",
+            "requestID": uuid.uuid4().hex,
+        }, 400
+
+    if user_data[15]:
+        return {
+            "status": "error",
+            "message": "Email address is already verified",
+            "requestID": uuid.uuid4().hex,
+        }, 400
+
+    SQL_DATABASE_CURSOR.execute(
+        "DELETE FROM Tokens WHERE TokenIssuedTo = %s AND TokenAuthority = %s",
+        (request.json.get("email").lower(), "EMAIL_VERIFICATION"),
+    )
+
+    EMAIL_VERIFICATION_TOKEN = secrets.token_urlsafe(32)
+
+    SQL_DATABASE_CURSOR.execute(
+        "INSERT INTO Tokens (TokenValue, TokenIssuedTo, TokenAuthority, TokenUsed) VALUES (%s, %s, %s, %s)",
+        (
+            EMAIL_VERIFICATION_TOKEN,
+            request.json.get("email").lower(),
+            "EMAIL_VERIFICATION",
+            False,
+        ),
+    )
+
+    if not send_email(
+        request.json.get("email").lower(),
+        user_data[2] + " " + user_data[3],
+        "user-registration",
+        EMAIL_VERIFICATION_TOKEN,
+    ):
+        return {
+            "status": "error",
+            "message": "Our internal services are facing some issues, please try again later",
+            "requestID": uuid.uuid4().hex,
+        }, 500
+
+    return {
+        "status": "success",
+        "message": "The email verification instructions has been sent to your email address",
+        "requestID": uuid.uuid4().hex,
+    }, 200
+
+
 @app.route("/api/v1/oauth/authenticate", methods=["GET"])
 def api_oauth_authenticate():
     if (
@@ -1272,6 +1347,7 @@ def api_oauth_authenticate():
         return {
             "status": "error",
             "message": "The oauth request failed due to invalid application ID",
+            "requestID": uuid.uuid4().hex,
         }, 400
 
     if g.user.session.get("loggedIn"):
@@ -1310,6 +1386,7 @@ def api_oauth_user():
         return {
             "status": "error",
             "message": f"The oauth request failed due to missing parameter {request_data.get('token') if request_data.get('token') is None else request_data.get('applicationID') if request_data.get('applicationID') is None else request_data.get('applicationSecret') if request_data.get('applicationSecret') is None else ''}",
+            "requestID": uuid.uuid4().hex,
         }, 400
 
     SQL_DATABASE_CURSOR.execute(
@@ -1323,6 +1400,7 @@ def api_oauth_user():
         return {
             "status": "error",
             "message": "The oauth request failed due to invalid application ID or application secret",
+            "requestID": uuid.uuid4().hex,
         }, 400
 
     SQL_DATABASE_CURSOR.execute(
@@ -1336,12 +1414,14 @@ def api_oauth_user():
         return {
             "status": "error",
             "message": "The oauth request failed due to an invalid token",
+            "requestID": uuid.uuid4().hex,
         }, 400
 
     if token_data[1] != request_data.get("applicationID"):
         return {
             "status": "error",
             "message": "The oauth request failed due to an invalid token",
+            "requestID": uuid.uuid4().hex,
         }, 400
 
     if token_data[5] < (datetime.datetime.now() - datetime.timedelta(seconds=30)):
@@ -1355,6 +1435,7 @@ def api_oauth_user():
         return {
             "status": "error",
             "message": "The oauth request failed due to an expired token",
+            "requestID": uuid.uuid4().hex,
         }, 400
 
     SQL_DATABASE_CURSOR.execute(
@@ -1369,14 +1450,13 @@ def api_oauth_user():
             {
                 "status": "error",
                 "message": "The oauth request failed due to an invalid token",
+                "requestID": uuid.uuid4().hex,
             },
         )
 
     SQL_DATABASE_CURSOR.execute(
         "DELETE FROM ApplicationTokens WHERE TokenValue = %s",
-        (request_data
-         
-         .get("token"),),
+        (request_data.get("token"),),
     )
 
     SQL_DATABASE_CONNECTION.commit()
@@ -1393,8 +1473,64 @@ def api_oauth_user():
             "accountRole": user_data[5],
             "profileImageURL": user_data[6],
         },
+        "requestID": uuid.uuid4().hex,
     }, 200
 
 
+@app.route("/api/v1/ping", methods=["GET"])
+def api_ping():
+    return (
+        jsonify(
+            {"status": "success", "message": "Pong", "requestID": uuid.uuid4().hex}
+        ),
+        200,
+    )
+
+
+# Error Handlers
+
+
+@app.errorhandler(404)
+def error_404(error):
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "The requested resource was not found",
+                "requestID": uuid.uuid4().hex,
+            }
+        ),
+        404,
+    )
+
+
+@app.errorhandler(405)
+def error_405(error):
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "The requested method is not allowed",
+                "requestID": uuid.uuid4().hex,
+            }
+        ),
+        405,
+    )
+
+
+@app.errorhandler(500)
+def error_500(error):
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "message": "Our internal services are facing some issues, please try again later",
+                "requestID": uuid.uuid4().hex,
+            }
+        ),
+        500,
+    )
+
+
 if __name__ == "__main__":
-    app.run(debug=CONFIG.DEBUG, port=5500)
+    app.run(debug=CONFIG.DEBUG, port=5000)
