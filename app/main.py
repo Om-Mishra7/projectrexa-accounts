@@ -432,7 +432,7 @@ def sign_out():
     return (
         redirect(g.user.session.get("next"))
         if g.user.session.get("next")
-        else redirect(url_for("sign_in")
+        else redirect(url_for("sign_in"))
     )
 
 
