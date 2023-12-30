@@ -1300,19 +1300,21 @@ def api_oauth_authenticate():
 
 @app.route("/api/v1/oauth/user", methods=["POST"])
 def api_oauth_user():
+    request_data = request.get_json()
+
     if (
-        request.json.get("token") is None
-        or request.json.get("applicationID") is None
-        or request.json.get("applicationSecret") is None
+        request_data.get("token") is None
+        or request_data.get("applicationID") is None
+        or request_data.get("applicationSecret") is None
     ):
         return {
             "status": "error",
-            "message": f"The oauth request failed due to missing parameter {request.json.get('token') if request.json.get('token') is None else request.json.get('applicationID') if request.json.get('applicationID') is None else request.json.get('applicationSecret') if request.json.get('applicationSecret') is None else ''}",
+            "message": f"The oauth request failed due to missing parameter {request_data.get('token') if request_data.get('token') is None else request_data.get('applicationID') if request_data.get('applicationID') is None else request_data.get('applicationSecret') if request_data.get('applicationSecret') is None else ''}",
         }, 400
 
     SQL_DATABASE_CURSOR.execute(
         "SELECT * FROM Applications WHERE ApplicationClientID = %s AND ApplicationClientSecret = %s",
-        (request.json.get("applicationID"), request.json.get("applicationSecret")),
+        (request_data.get("applicationID"), request_data.get("applicationSecret")),
     )
 
     application_data = SQL_DATABASE_CURSOR.fetchone()
@@ -1325,7 +1327,7 @@ def api_oauth_user():
 
     SQL_DATABASE_CURSOR.execute(
         "SELECT * FROM ApplicationTokens WHERE TokenValue = %s AND ApplicationID = %s",
-        (request.json.get("token"), request.json.get("applicationID")),
+        (request_data.get("token"), request_data.get("applicationID")),
     )
 
     token_data = SQL_DATABASE_CURSOR.fetchone()
@@ -1336,7 +1338,7 @@ def api_oauth_user():
             "message": "The oauth request failed due to an invalid token",
         }, 400
 
-    if token_data[1] != request.json.get("applicationID"):
+    if token_data[1] != request_data.get("applicationID"):
         return {
             "status": "error",
             "message": "The oauth request failed due to an invalid token",
@@ -1345,7 +1347,7 @@ def api_oauth_user():
     if token_data[5] < (datetime.datetime.now() - datetime.timedelta(seconds=30)):
         SQL_DATABASE_CURSOR.execute(
             "DELETE FROM ApplicationTokens WHERE TokenValue = %s",
-            (request.json.get("token"),),
+            (request_data.get("token"),),
         )
 
         SQL_DATABASE_CONNECTION.commit()
@@ -1357,6 +1359,7 @@ def api_oauth_user():
 
     SQL_DATABASE_CURSOR.execute(
         "SELECT UserID, Username, FirstName, LastName, Email, AccountRole, ProfileImageURL FROM Users WHERE UserID = %s",
+        (token_data[3],),
     )
 
     user_data = SQL_DATABASE_CURSOR.fetchone()
@@ -1371,7 +1374,9 @@ def api_oauth_user():
 
     SQL_DATABASE_CURSOR.execute(
         "DELETE FROM ApplicationTokens WHERE TokenValue = %s",
-        (request.json.get("token"),),
+        (request_data
+         
+         .get("token"),),
     )
 
     SQL_DATABASE_CONNECTION.commit()
@@ -1392,6 +1397,4 @@ def api_oauth_user():
 
 
 if __name__ == "__main__":
-    app.run(
-        debug=CONFIG.DEBUG,
-    )
+    app.run(debug=CONFIG.DEBUG, port=5500)
