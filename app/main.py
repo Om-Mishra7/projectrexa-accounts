@@ -425,8 +425,15 @@ def sign_up():
 
 @app.route("/sign-out")
 def sign_out():
+    if request.args.get("next") is not None:
+        g.user.set("next", request.args.get("next"))
+
     g.user.clear_session()
-    return redirect(url_for("sign_in"))
+    return (
+        redirect(g.user.session.get("next"))
+        if g.user.session.get("next")
+        else redirect(url_for("sign_in")
+    )
 
 
 @app.route("/reset-password")
