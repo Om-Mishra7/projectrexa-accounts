@@ -353,7 +353,7 @@ def set_session_cookie(response):
             "projectrexa-session",
             g.user.session_id,
             httponly=True,
-            samesite="Lax",
+            samesite="None",
             secure=True,
         )
     return response
