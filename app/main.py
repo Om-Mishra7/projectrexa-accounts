@@ -346,6 +346,8 @@ def check_session():
 @app.after_request
 def set_session_cookie(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     if g.user.session_id:
         response.set_cookie(
             "projectrexa-session",
