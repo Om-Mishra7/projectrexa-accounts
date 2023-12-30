@@ -345,7 +345,7 @@ def check_session():
 
 @app.after_request
 def set_session_cookie(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Origin"] = "https://*.projectrexa.dedyn.io"
     response.headers["Access-Control-Allow-Methods"] = "POST"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     response.headers["Access-Control-Allow-Credentials"] = "true"
