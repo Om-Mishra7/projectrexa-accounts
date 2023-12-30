@@ -442,6 +442,11 @@ def reset_password():
     return render_template("reset_password.html")
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return redirect("https://cdn.projectrexa.dedyn.io/favicon.ico", 302)
+
+
 # OAuth Initiaters
 
 
