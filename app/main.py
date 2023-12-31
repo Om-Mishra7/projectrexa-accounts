@@ -1472,8 +1472,8 @@ def api_oauth_user():
         )
 
     SQL_DATABASE_CURSOR.execute(
-        "DELETE FROM ApplicationTokens WHERE TokenValue = %s",
-        (request_data.get("token"),),
+        "UPDATE ApplicationTokens SET TokenUsed = %s WHERE TokenValue = %s",
+        (True, request_data.get("token")),
     )
 
     SQL_DATABASE_CONNECTION.commit()
