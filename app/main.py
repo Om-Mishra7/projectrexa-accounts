@@ -1385,17 +1385,18 @@ def api_oauth_authenticate():
                 g.user.session.get("userID"),
             ),
         )
-
-        return redirect(
-            if request.args.get("redirectURI") != application_data[3]:
+        
+        if request.args.get("redirectURI") != application_data[3]:
                 return {
                     "status": "error",
                     "message": "The oauth request failed due to an invalid redirect URI",
                     "requestID": uuid.uuid4().hex,
                 }, 400
-                
-            f"{application_data[3]}?code={oauth_token}&state={request.args.get('requestState')}"
-        )
+        
+        else:
+            return redirect(
+                f"{application_data[3]}?code={oauth_token}&state={request.args.get('requestState')}"
+            )
 
     else:
         g.user.set(
@@ -1408,7 +1409,7 @@ def api_oauth_authenticate():
 @app.route("/api/v1/oauth/user", methods=["POST"])
 def api_oauth_user():
     request_data = request.get_json()
-    token = request_data.get("token") ? request_data.get("token") : request.headers.get("code")
+    token = request_data.get("token") if request_data is not None else request.args.get("code")
 
     if (
         token is None
