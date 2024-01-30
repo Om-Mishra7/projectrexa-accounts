@@ -379,6 +379,7 @@ def index():
                 {
                     "status": "success",
                     "message": f"Welcome {g.user.session.get('userName')}, you are logged in to your ProjectRexa Account using {g.user.session.get('signupMethod').title()}, feel free to close this window and continue using ProjectRexa services",
+                    "accountLevel": f"{1 if g.user.session.get('accountRole') == 'USER' else 3}",
                     "requestID": uuid.uuid4().hex,
                 }
             ),
