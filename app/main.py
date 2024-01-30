@@ -378,7 +378,7 @@ def index():
             jsonify(
                 {
                     "status": "success",
-                    "message": f"Welcome {g.user.session.get('userName')}, you are logged in to your ProjectRexa Account using {g.user.session.get('signupMethod')}, feel free to close this window and continue using ProjectRexa services",
+                    "message": f"Welcome {g.user.session.get('userName')}, you are logged in to your ProjectRexa Account using {g.user.session.get('signupMethod').title()}, feel free to close this window and continue using ProjectRexa services",
                     "requestID": uuid.uuid4().hex,
                 }
             ),
