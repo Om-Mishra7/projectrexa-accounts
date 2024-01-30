@@ -1,8 +1,11 @@
+"""
+This file contains the main application code for ProjectRexa Accounts
+"""
 import pickle
 import datetime
-import bcrypt
 import random
 import string
+import bcrypt
 import requests
 import mysql.connector
 import redis
@@ -10,7 +13,7 @@ import secrets
 import re
 import os
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, g, jsonify
+from flask import Flask, render_template, request, redirect, url_for, g, jsonify, abort
 import uuid
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
@@ -20,6 +23,9 @@ load_dotenv()
 
 
 class CONFIG:
+    """
+    This class contains all the configuration variables for the application
+    """
     if os.getenv("SERVER_ENVIRONMENT") == "DEVELOPMENT":
         SERVER_ENVIRONMENT = "DEVELOPMENT"
         DEBUG = True
@@ -28,19 +34,19 @@ class CONFIG:
         GOOGLE_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("GOOGLE_REDIRECT_URI")
         DISCORD_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv(
             "DISCORD_REDIRECT_URI"
-        )
+        
 
     else:
         SERVER_ENVIRONMENT = "PRODUCTION"
         DEBUG = False
         TESTING = False
-        GITHUB_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv(
+        GITHUB_REDIRECT_URI = "https://accounts.om-mishra.com" + os.getenv(
             "GITHUB_REDIRECT_URI"
         )
-        GOOGLE_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv(
+        GOOGLE_REDIRECT_URI = "https://accounts.om-mishra.com" + os.getenv(
             "GOOGLE_REDIRECT_URI"
         )
-        DISCORD_REDIRECT_URI = "https://accounts.projectrexa.dedyn.io" + os.getenv(
+        DISCORD_REDIRECT_URI = "https://accounts.om-mishra.com" + os.getenv(
             "DISCORD_REDIRECT_URI"
         )
 
@@ -253,7 +259,7 @@ def send_email(recipient_email_address, recipient_name, template_name, token=Non
         }
 
         token_url = (
-            f"https://accounts.projectrexa.dedyn.io/api/v1/verify-email?token={token}"
+            f"https://accounts.om-mishra.com/api/v1/verify-email?token={token}"
         )
         html = render_template(
             "email/user-registration.html",
@@ -274,7 +280,7 @@ def send_email(recipient_email_address, recipient_name, template_name, token=Non
         }
 
         token_url = (
-            f"https://accounts.projectrexa.dedyn.io/reset-password?token={token}"
+            f"https://accounts.om-mishra.com/reset-password?token={token}"
         )
 
         html = render_template(
@@ -371,7 +377,7 @@ def index():
             jsonify(
                 {
                     "status": "success",
-                    "message": "You are logged in to your ProjectRexa Account",
+                    "message": f"Welcome {g.user.session.get('userName')}, you are logged in to your ProjectRexa Account using {g.user.session.get('signupMethod')}, feel free to close this window and continue using ProjectRexa services",
                     "requestID": uuid.uuid4().hex,
                 }
             ),
@@ -381,7 +387,7 @@ def index():
         jsonify(
             {
                 "status": "error",
-                "message": "You are not logged in to your ProjectRexa Account",
+                "message": "You are not logged in to your ProjectRexa Account, please go to https://accounts.om-mishra.com/sign-in to sign in",
                 "requestID": uuid.uuid4().hex,
             }
         ),
@@ -1380,6 +1386,13 @@ def api_oauth_authenticate():
         )
 
         return redirect(
+            if request.args.get("redirectURI") != application_data[3]:
+                return {
+                    "status": "error",
+                    "message": "The oauth request failed due to an invalid redirect URI",
+                    "requestID": uuid.uuid4().hex,
+                }, 400
+                
             f"{application_data[3]}?code={oauth_token}&state={request.args.get('requestState')}"
         )
 
@@ -1394,15 +1407,16 @@ def api_oauth_authenticate():
 @app.route("/api/v1/oauth/user", methods=["POST"])
 def api_oauth_user():
     request_data = request.get_json()
+    token = request_data.get("token") ? request_data.get("token") : request.headers.get("code")
 
     if (
-        request_data.get("token") is None
+        token is None
         or request_data.get("applicationID") is None
         or request_data.get("applicationSecret") is None
     ):
         return {
             "status": "error",
-            "message": f"The oauth request failed due to missing parameter {request_data.get('token') if request_data.get('token') is None else request_data.get('applicationID') if request_data.get('applicationID') is None else request_data.get('applicationSecret') if request_data.get('applicationSecret') is None else ''}",
+            "message": f"The oauth request failed due to missing parameter {'token' if token is None else 'applicationID' if request_data.get('applicationID') is None else 'applicationSecret' if request_data.get('applicationSecret') is None else ''}",
             "requestID": uuid.uuid4().hex,
         }, 400
 
@@ -1478,21 +1492,60 @@ def api_oauth_user():
 
     SQL_DATABASE_CONNECTION.commit()
 
-    return {
+    return jsonify({
         "status": "success",
-        "message": "The oauth request was successful",
+        "message": "The oauth request was successful and contains the user data",
         "user": {
             "userID": user_data[0],
             "userName": user_data[1],
             "firstName": user_data[2],
             "lastName": user_data[3],
-            "email": user_data[4],
-            "accountRole": user_data[5],
-            "profileImageURL": user_data[6],
+            "userEmail": user_data[4],
+            "userRole": user_data[5],
+            "userProfileImageURL": user_data[6],
         },
         "requestID": uuid.uuid4().hex,
-    }, 200
+    }), 200
 
+@app.route("/api/v1/new-application", methods=["GET"])
+def api_new_application():
+    if not g.user.session.get("accountRole") == "admin":
+        abort(404)
+    else:
+        applicationID = secrets.token_urlsafe(16)
+        applicationSecret = secrets.token_urlsafe(32)
+        applicationRedirectURI = request.args.get("redirectURI")
+        applicationName = request.args.get("name")
+        
+        if applicationRedirectURI is None:
+            return {
+                "status": "error",
+                "message": "The request is missing the required parameter 'redirectURI'",
+                "requestID": uuid.uuid4().hex,
+            }, 400
+            
+        try:
+            SQL_DATABASE_CURSOR.execute(
+                "INSERT INTO Applications (ApplicationClientID, ApplicationClientSecret, ApplicationRedirectURI, ApplicationName) VALUES (%s, %s, %s, %s)",
+            )
+            
+            SQL_DATABASE_CONNECTION.commit()
+            
+            return {
+                "status": "success",
+                "message": "The application was created successfully",
+                "applicationID": applicationID,
+                "applicationSecret": applicationSecret,
+                "applicationName": applicationName,
+                "requestID": uuid.uuid4().hex,
+            }, 200
+            
+        except Exception as error:
+            return {
+                "status": "error",
+                "message": "Our internal services are facing some issues, please try again later",
+                "requestID": uuid.uuid4().hex,
+            }, 500
 
 @app.route("/api/v1/ping", methods=["GET"])
 def api_ping():
