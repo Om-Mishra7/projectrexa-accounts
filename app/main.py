@@ -34,6 +34,7 @@ class CONFIG:
         GOOGLE_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv("GOOGLE_REDIRECT_URI")
         DISCORD_REDIRECT_URI = "http://127.0.0.1:5000" + os.getenv(
             "DISCORD_REDIRECT_URI"
+        )
         
 
     else:
