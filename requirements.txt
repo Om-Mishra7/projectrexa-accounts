@@ -13,3 +13,4 @@ flask_limiter
 botocore
 gunicorn
 werkzeug>=3.0.1 # not directly required, pinned by Snyk to avoid a vulnerability
+dnspython>=2.6.0rc1 # not directly required, pinned by Snyk to avoid a vulnerability
