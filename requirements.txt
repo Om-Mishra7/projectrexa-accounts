@@ -1,0 +1,6 @@
+flask
+redis
+bcrypt
+resend
+pymongo
+python-dotenv
