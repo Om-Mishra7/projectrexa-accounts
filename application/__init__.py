@@ -1,7 +1,7 @@
 from application.config import Config
 from flask import Flask, request, jsonify, render_template, redirect, url_for, g
 from application.helpers import generate_guest_session, load_cookie_session
-from application.authentication import handle_email_signup, handle_email_signin, handle_user_signout
+from application.authentication import handle_email_signup, handle_email_signin, handle_user_signout, handle_email_verification
 
 
 
@@ -62,7 +62,7 @@ def login_required(func):
 def guest_required(func):
     def wrapper(*args, **kwargs):
         if g.session['session_info']['session_type'] != 'guest':
-            return redirect(url_for('home'))
+            return redirect(url_for('home')), 302
         return func(*args, **kwargs)
     wrapper.__name__ = func.__name__
     return wrapper
@@ -104,6 +104,10 @@ def sign_in_email():
 def sign_out():
     return render_template('sign-out.html')
     
+@app.route('/auth/email/verification/verify', methods=['GET'])
+@guest_required
+def verify_email():
+    return handle_email_verification(request, Config.database_cursor)
 
 # Utility Routes
 

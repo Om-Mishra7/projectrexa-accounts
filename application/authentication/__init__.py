@@ -1,5 +1,5 @@
 import datetime
-from flask import jsonify
+from flask import jsonify, redirect
 from application.helpers import generate_user_public_id, generate_user_name, generate_hashed_password, generate_token , send_email_verification_email, verify_hashed_password, generate_user_session, generate_guest_session
 
 def handle_email_signup(request, database_connection):
@@ -94,3 +94,29 @@ def handle_user_signout(request, redis_connection, database_connection, global_c
     global_context.session = generate_guest_session(request, redis_connection)
 
     return jsonify({'status': 'success', 'message': 'The account has been logged out successfully'}), 200
+
+def handle_email_verification(request, database_connection):
+        
+        email_verification_token = request.args.get('verification_token')
+
+        if email_verification_token is None:
+            return redirect('/auth/sign-in?broadcast=The verification token is invalid, please make sure the link is correct and try again'), 302
+        
+        token_data = database_connection['tokens'].find_one({'token_type': 'email_verification', 'token_value': email_verification_token})
+
+        if token_data is None:
+            return redirect('/auth/sign-in?broadcast=The verification token is invalid, please make sure the link is correct and try again'), 302
+        
+        user_data = database_connection['users'].find_one({'user_public_id': token_data['token_user_public_id']})
+
+        if user_data is None:
+            return redirect('/auth/sign-in?broadcast=The account associated with the verification token does not exist, please sign up'), 302
+        
+        if user_data['user_account_info']['user_account_verification_status'] == 'verified':
+            return redirect('/auth/sign-in?broadcast=The account associated with the verification token is already verified, please sign in'), 302
+        
+        database_connection['users'].update_one({'user_public_id': user_data['user_public_id']}, {'$set': {'user_account_info.user_account_verification_status': 'verified'}})
+
+        database_connection['tokens'].delete_one({'token_id': token_data['token_id']})
+
+        return redirect('/auth/sign-in?broadcast=The account has been verified successfully, please sign in'), 302
