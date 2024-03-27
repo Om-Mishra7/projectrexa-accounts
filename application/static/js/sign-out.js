@@ -74,7 +74,7 @@ function signOut() {
         .then(data => {
             if (data.status === 'success') {
                 setTimeout(() => {
-                    window.location.href = '/';
+                    window.location.href = '/?broadcast=You have been signed out successfully';
                 }, 1000);
             } else {
                 createAlert(data.message, 'danger');

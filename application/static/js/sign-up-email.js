@@ -47,7 +47,7 @@ function signUpEmail() {
         .then(data => {
             if (data.status === 'success') {
                 setTimeout(() => {
-                    window.location.href = `auth/sign-in/identifier/email?brodcast=${data.message}`;
+                    window.location.href = `/auth/sign-in/identifier/email?broadcast=${data.message}`;
                 }, 1000);
             } else {
                 createAlert(data.message, 'danger');
