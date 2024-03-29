@@ -1,6 +1,6 @@
 from application.config import Config
 from flask import Flask, request, jsonify, render_template, redirect, url_for, g
-from application.helpers import generate_guest_session, load_cookie_session
+from application.helpers import generate_guest_session, load_cookie_session, filter_valid_sessions
 from application.authentication import handle_email_signup, handle_email_signin, handle_user_signout, handle_email_verification, handle_resend_email_verification, handle_send_password_reset, handle_reset_password
 
 
@@ -85,7 +85,19 @@ def inject_query_params():
 @app.route('/')
 @login_required
 def home():
-    return jsonify(g.session)
+    user_info = Config.database_cursor['users'].find_one({'user_public_id': g.session['user_info']['user_public_id']})
+    if user_info is None:
+        g.session = generate_guest_session(request, Config.redis_connection)
+        return redirect(url_for('home'))
+    
+    user_sessions = Config.database_cursor['sessions'].find({'session_user_id': user_info['user_public_id']})
+    user_sessions = filter_valid_sessions(user_sessions, Config.redis_connection)
+    print(user_sessions)
+        
+    return render_template('user-home.html', user_info=user_info, user_sessions=user_sessions)
+
+
+# Authentication Routes
 
 @app.route('/auth/sign-up', methods=['GET'])
 @guest_required

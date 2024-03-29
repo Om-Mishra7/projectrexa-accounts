@@ -262,3 +262,20 @@ def verifiy_csrf_token(request, global_context):
     if csrf_token is None or csrf_token != global_context.session['session_info']['session_csrf_token']:
         return False
     return True
+
+def filter_valid_sessions(user_sessions, redis_connection):
+    '''
+    Filter the valid sessions for the user
+
+    :param user_sessions: The sessions of the user
+    :param redis_connection: The connection object to the redis server
+    :return: A list of valid sessions
+    '''
+    valid_sessions = []
+    for session in user_sessions:
+        session = json.loads(redis_connection.get(session['session_id']))
+        if session is not None and datetime.datetime.strptime(session['session_info']['session_last_access_time'], '%Y-%m-%d %H:%M:%S') > datetime.datetime.now() - datetime.timedelta(days=180):
+            valid_sessions.append(session)
+        else:
+            redis_connection.delete(session['session_id'])
+    return valid_sessions

@@ -30,7 +30,7 @@ def handle_email_signup(request, database_connection):
         'user_profile_info': {
             'user_role': 'user',
             'user_full_name': user_name,
-            'user_profile_picture': 'https://ui-avatars.com/api/?format=svg?name=' + user_name,
+            'user_profile_picture': 'https://ui-avatars.com/api/?format=svg&name=' + user_name,
         },
         'user_account_info': {
             'user_account_type': 'email',
