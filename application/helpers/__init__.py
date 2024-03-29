@@ -16,7 +16,8 @@ def resolve_ip_address_to_country(ip_address):
     :return: The country name of the user
     '''
     try:
-        ip_api_response = requests.get(f"https://freeipapi.com/json/{ip_address}", timeout=1)
+        ip_api_response = requests.get(f"https://freeipapi.com/api/json/{ip_address}", timeout=1)
+        print(ip_api_response.json())
         if ip_api_response.status_code == 200:
             return ip_api_response.json()['countryName']
         return 'Unknown'
