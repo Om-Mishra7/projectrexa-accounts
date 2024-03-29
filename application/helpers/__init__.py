@@ -16,8 +16,7 @@ def resolve_ip_address_to_country(ip_address):
     :return: The country name of the user
     '''
     try:
-        ip_api_response = requests.get(f"https://freeipapi.com/api/json/{ip_address}", timeout=1)
-        print(ip_api_response.json())
+        ip_api_response = requests.get(f"https://freeipapi.com/api/json/{ip_address}", timeout=3)
         if ip_api_response.status_code == 200:
             return ip_api_response.json()['countryName']
         return 'Unknown'
@@ -256,9 +255,7 @@ def verifiy_csrf_token(request, global_context):
     :param global_context: The global context object
     :return: A boolean value indicating if the CSRF token is valid
     '''
-    print(request.args)
     csrf_token = request.args.get('csrf_token')
-    print(csrf_token)
     if csrf_token is None or csrf_token != global_context.session['session_info']['session_csrf_token']:
         return False
     return True

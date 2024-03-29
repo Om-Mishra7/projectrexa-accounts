@@ -92,7 +92,6 @@ def home():
     
     user_sessions = Config.database_cursor['sessions'].find({'session_user_id': user_info['user_public_id']})
     user_sessions = filter_valid_sessions(user_sessions, Config.redis_connection)
-    print(user_sessions)
         
     return render_template('user-home.html', user_info=user_info, user_sessions=user_sessions)
 
