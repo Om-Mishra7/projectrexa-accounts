@@ -77,7 +77,6 @@ def inject_query_params():
         query_string = ""
         for key, value in query_params.items():
             query_string += f'{key}={value[0]}&'
-            print(query_string)
         return dict(query_params=query_string[:-1])
     return dict()
 

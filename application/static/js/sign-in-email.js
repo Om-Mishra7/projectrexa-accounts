@@ -1,4 +1,7 @@
 function signInEmail() {
+    document.getElementById('sign-in-email-button').disabled = true;
+    document.getElementById('sign-in-email-button').innerText = 'Signing in...';
+
     let userEmail = document.getElementById('sign-in-email-input').value;
     let userPassword = document.getElementById('sign-in-password-input').value;
     let missingFields = [];
@@ -20,6 +23,8 @@ function signInEmail() {
             missingFieldsMessage = missingFields.slice(0, -1).join(', ') + ' and ' + missingFields.slice(-1);
         }
         createAlert(`It seems you have missed the required fields: ${missingFieldsMessage}.`, 'danger');
+        document.getElementById('sign-in-email-button').innerText = 'Sign in';
+        document.getElementById('sign-in-email-button').disabled = false;
         return;
     }
 
@@ -27,8 +32,6 @@ function signInEmail() {
         email: userEmail,
         password: userPassword
     };
-
-    document.getElementById('sign-in-email-button').innerText = 'Signing in...';
 
     fetch('/api/v1/auth/sign-in/email', {
         method: 'POST',
@@ -55,10 +58,12 @@ function signInEmail() {
                 }
                 createAlert(data.message, 'danger');
                 document.getElementById('sign-in-email-button').innerText = 'Sign in';
+                document.getElementById('sign-in-email-button').disabled = false;
             }
         })
         .catch(error => {
             createAlert('Our internal systems are facing some issues. Please try again later.', 'danger');
             document.getElementById('sign-in-email-button').innerText = 'Sign in';
+            document.getElementById('sign-in-email-button').disabled = false;
         });
 }
