@@ -56,7 +56,13 @@ def generate_user_session(user_info, request, redis_connection, database_connect
             'session_referer': request.headers.get('Referer'),
             'session_country': request.headers.get('CF-IPCountry'),
         },
-        'user_info': user_info['user_profile_info']
+        'user_info': {
+            'user_public_id': user_info['user_public_id'],
+            'user_name': user_info['user_name'],
+            'user_role': user_info['user_profile_info']['user_role'],
+            'user_full_name': user_info['user_profile_info']['user_full_name'],
+            'user_email': user_info['user_email'],
+        }
     }
 
     redis_connection.set(session['session_id'], json.dumps(session))
@@ -90,6 +96,10 @@ def load_cookie_session(request, redis_connection, session_id):
     else:
         session = json.loads(session)
     if datetime.datetime.strptime(session['session_info']['session_last_access_time'], '%Y-%m-%d %H:%M:%S') < datetime.datetime.now() - datetime.timedelta(days=180):
+        redis_connection.delete(session['session_id'])
+        return generate_guest_session(request, redis_connection)
+    if session['session_info']['session_user_agent'] != request.headers.get('User-Agent'):
+        redis_connection.delete(session['session_id'])
         return generate_guest_session(request, redis_connection)
     update_session_access_time(session, redis_connection)
     return session
@@ -192,7 +202,7 @@ def send_password_reset_email(user_email, user_full_name, token):
     :param token: The token for the password reset
     '''
     send_email(user_email, user_full_name, 'Password Reset | ProjectRexa', f"""
-               <body><div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px"><p style="font-size:16px">Hello {user_full_name.title()},</p><p style="font-size:16px">We received a request to reset your password. To reset your password, please click the link below:</p><p style="font-size:16px"><a href="https://accounts.om-mishra.com/auth/password/reset?reset_token={token}" style="color:#007bff;text-decoration:none">https://accounts.om-mishra.com/auth/password/reset?reset_token={token}</a></p><p style="font-size:16px">If you did not request a password reset, please ignore this email. If you have any questions or need assistance, feel free to reach out to our support team at <a href="mailto:support@om-mishra.com" style="color:#007bff;text-decoration:none">support@om-mishra.com</a>.</p><p style="font-size:16px">Best Regards,<br>The Team at ProjectRexa</p></div></body>""")
+               <body><div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px"><p style="font-size:16px">Hello {user_full_name.title()},</p><p style="font-size:16px">We received a request to reset your password. To reset your password, please click the link below:</p><p style="font-size:16px"><a href="https://accounts.om-mishra.com/auth/password/reset-password?reset_token={token}" style="color:#007bff;text-decoration:none">https://accounts.om-mishra.com/auth/password/reset-password?reset_token={token}</a></p><p style="font-size:16px">If you did not request a password reset, please ignore this email. If you have any questions or need assistance, feel free to reach out to our support team at <a href="mailto:support@om-mishra.com" style="color:#007bff;text-decoration:none">support@om-mishra.com</a>.</p><p style="font-size:16px">Best Regards,<br>The Team at ProjectRexa</p></div></body>""")
 
 def send_email(user_email, user_full_name, subject, body):
     '''

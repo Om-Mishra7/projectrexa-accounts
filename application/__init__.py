@@ -120,9 +120,13 @@ def resend_email_verification():
 
 @app.route('/auth/password/forgot-password', methods=['GET'])
 @guest_required
-def reset_password():
+def send_password_reset():
     return handle_send_password_reset(request, g, Config.database_cursor)
 
+@app.route('/auth/password/reset-password', methods=['GET'])
+@guest_required
+def reset_password():
+    return render_template('reset-password.html')
 
 
 
