@@ -51,6 +51,9 @@ function csrfToken() {
         if (cookie.includes('X-ProjectRexa-CSRFToken')) {
             csrfToken = cookie.split('=')[1];
         }
+        else {
+            createAlert('The CSRF token is missing. Please refresh the page, or disable your browser extensions.', 'danger');
+        }
     });
     return csrfToken;
 }

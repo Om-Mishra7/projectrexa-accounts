@@ -1,6 +1,6 @@
 import datetime
 from flask import jsonify, redirect
-from application.helpers import generate_user_public_id, generate_user_name, generate_hashed_password, generate_token , send_email_verification_email, verify_hashed_password, generate_user_session, generate_guest_session
+from application.helpers import generate_user_public_id, generate_user_name, generate_hashed_password, generate_token , send_email_verification_email, verify_hashed_password, generate_user_session, generate_guest_session, verifiy_csrf_token, send_password_reset_email
 
 def handle_email_signup(request, database_connection):
     
@@ -36,9 +36,10 @@ def handle_email_signup(request, database_connection):
             'user_account_type': 'email',
             'user_account_status': 'active',
             'user_account_verification_status': 'pending',
-            'user_account_created_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'user_account_created_at': datetime.datetime.now(),
             'user_account_last_login_at': None,
             'user_account_last_login_ip': None,
+            'user_password_last_updated_at': datetime.datetime.now(),
         },
     }
 
@@ -48,10 +49,9 @@ def handle_email_signup(request, database_connection):
 
     send_email_verification_email(user_email, user_data['user_profile_info']['user_full_name'], email_verification_token)
 
-    return jsonify({'status': 'success', 'message': 'The account has been created successfully, please verify your email address'}), 201
+    return jsonify({'status': 'success', 'message': 'The account has been created successfully, please check your inbox for the verification email'}), 200
     
-def handle_email_signin(request, database_connection, redis_connection, global_context):
-    
+def handle_email_signin(request, database_connection, redis_connection, global_context):        
     try:
         request_data = request.get_json()
     except:
@@ -72,7 +72,7 @@ def handle_email_signin(request, database_connection, redis_connection, global_c
         return jsonify({'status': 'error', 'message': 'The account is not an email account, please use the appropriate login method'}), 400
     
     if user_data['user_account_info']['user_account_verification_status'] == 'pending':
-        return jsonify({'status': 'error', 'message': 'The account is not verified, please check your inbox or request another&nbsp;<a href="/auth/email/verification/resend">verification email.</a>'}), 400
+        return jsonify({'status': 'error', 'message': f'The account is not verified, please check your inbox or request another&nbsp;<a href="/auth/email/verification/resend?idenifier={user_data["user_public_id"]}&csrf_token={global_context.session["session_info"]["session_csrf_token"]}">verification email</a>'}), 400
     
     if user_data['user_account_info']['user_account_status'] == 'suspended':
         return jsonify({'status': 'error', 'message': 'The account is suspended, please contact the support team'}), 400
@@ -81,8 +81,8 @@ def handle_email_signin(request, database_connection, redis_connection, global_c
         return jsonify({'status': 'error', 'message': 'The account is deleted, please contact the support team'}), 400
     
     if not verify_hashed_password(user_password, user_data['user_hashed_password']):
-        return jsonify({'status': 'error', 'message': 'The password is incorrect, please try again or&nbsp;<a href="/auth/password/reset">reset your password.</a>'}), 400
-    
+        return jsonify({'status': 'error', 'message': f'The password is incorrect, please try again or&nbsp;<a href="/auth/password/forgot-password?idenifier={user_data["user_public_id"]}&csrf_token={global_context.session["session_info"]["session_csrf_token"]}">reset the password</a>'}), 400
+                        
     global_context.session = generate_user_session(user_data, request, redis_connection, database_connection)
 
     return jsonify({'status': 'success', 'message': 'The account has been logged in successfully', 'session_id': global_context.session['session_id']}), 200
@@ -99,10 +99,14 @@ def handle_email_verification(request, database_connection):
         
         email_verification_token = request.args.get('verification_token')
 
+        print("email_verification_token", email_verification_token)
+
         if email_verification_token is None:
             return redirect('/auth/sign-in?broadcast=The verification token is invalid, please make sure the link is correct and try again'), 302
         
-        token_data = database_connection['tokens'].find_one({'token_type': 'email_verification', 'token_value': email_verification_token})
+        token_data = database_connection['tokens'].find_one({'token_type': 'email_verification', 'token': email_verification_token})
+
+        print("token_data", token_data)
 
         if token_data is None:
             return redirect('/auth/sign-in?broadcast=The verification token is invalid, please make sure the link is correct and try again'), 302
@@ -117,6 +121,75 @@ def handle_email_verification(request, database_connection):
         
         database_connection['users'].update_one({'user_public_id': user_data['user_public_id']}, {'$set': {'user_account_info.user_account_verification_status': 'verified'}})
 
-        database_connection['tokens'].delete_one({'token_id': token_data['token_id']})
+        database_connection['tokens'].delete_one({'token_id': token_data['token']})
 
-        return redirect('/auth/sign-in?broadcast=The account has been verified successfully, please sign in'), 302
+        return redirect('/auth/sign-in?broadcast=Your account has been verified successfully, please sign in'), 302
+
+def handle_resend_email_verification(request, global_context, database_connection):
+
+    if verifiy_csrf_token(request, global_context) is False:
+        return redirect('/auth/sign-in?broadcast=The CSRF token is invalid, please refresh the page and try again'), 302
+    
+    user_public_id = request.args.get('idenifier')
+    
+    if user_public_id is None:
+        return redirect('/auth/sign-in?broadcast=The identifier is invalid, please go back and try again'), 302
+    
+    user_data = database_connection['users'].find_one({'user_public_id': user_public_id})
+
+    if user_data is None:
+        return redirect('/auth/sign-in?broadcast=The account associated with the identifier does not exist, please sign up'), 302
+    
+    if user_data['user_account_info']['user_account_verification_status'] == 'verified':
+        return redirect('/auth/sign-in?broadcast=The account associated with the identifier is already verified, please sign in'), 302
+    
+    if user_data['user_account_info']['user_account_status'] == 'suspended':
+        return redirect('/auth/sign-in?broadcast=The account associated with the identifier is suspended, please contact the support team'), 302
+    
+    if user_data['user_account_info']['user_account_status'] == 'deleted':
+        return redirect('/auth/sign-in?broadcast=The account associated with the identifier is deleted, please contact the support team'), 302
+    
+    if database_connection['tokens'].find_one({'token_type': 'email_verification', 'token_user_public_id': user_data['user_public_id']}) is not None:
+        if database_connection['tokens'].find_one({'token_type': 'email_verification', 'token_user_public_id': user_data['user_public_id']})['token_created_at'] > (datetime.datetime.now() - datetime.timedelta(hours=6)):
+            return redirect('/auth/sign-in?broadcast=The verification email has already been sent, please check your inbox'), 302
+    
+    email_verification_token = generate_token('email_verification', user_data['user_public_id'], database_connection)
+
+    send_email_verification_email(user_data['user_email'], user_data['user_profile_info']['user_full_name'], email_verification_token)
+
+    return redirect('/auth/sign-in?broadcast=The verification email has been resent, please check your inbox'), 302
+
+def handle_send_password_reset(request, global_context, database_connection):
+    
+    if verifiy_csrf_token(request, global_context) is False:
+        return redirect('/auth/sign-in?broadcast=The CSRF token is invalid, please refresh the page and try again'), 302
+    
+    user_public_id = request.args.get('idenifier')
+    
+    if user_public_id is None:
+        return redirect('/auth/sign-in?broadcast=The identifier is invalid, please go back and try again'), 302
+    
+    user_data = database_connection['users'].find_one({'user_public_id': user_public_id})
+
+    if user_data is None:
+        return redirect('/auth/sign-in?broadcast=The account associated with the identifier does not exist, please sign up'), 302
+    
+    if user_data['user_account_info']['user_account_status'] == 'suspended':
+        return redirect('/auth/sign-in?broadcast=The account associated with the identifier is suspended, please contact the support team'), 302
+    
+    if user_data['user_account_info']['user_account_status'] == 'deleted':
+        return redirect('/auth/sign-in?broadcast=The account associated with the identifier is deleted, please contact the support team'), 302
+    
+    if user_data['user_account_info']['user_password_last_updated_at'] > (datetime.datetime.now() - datetime.timedelta(days=7)):
+        return redirect('/auth/sign-in?broadcast=The password has been reseted recently, therefore you cannot reset the password at the moment'), 302
+    
+    if database_connection['tokens'].find_one({'token_type': 'password_reset', 'token_user_public_id': user_data['user_public_id']}) is not None:
+        if database_connection['tokens'].find_one({'token_type': 'password_reset', 'token_user_public_id': user_data['user_public_id']})['token_created_at'] > (datetime.datetime.now() - datetime.timedelta(hours=6)):
+            return redirect('/auth/sign-in?broadcast=The password reset email has already been sent, please check your inbox'), 302
+    
+    password_reset_token = generate_token('password_reset', user_data['user_public_id'], database_connection)
+
+    send_password_reset_email(user_data['user_email'], user_data['user_profile_info']['user_full_name'], password_reset_token)
+    
+    return redirect('/auth/sign-in?broadcast=The password reset email has been sent, please check your inbox'), 302
+

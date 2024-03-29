@@ -1,7 +1,7 @@
 from application.config import Config
 from flask import Flask, request, jsonify, render_template, redirect, url_for, g
 from application.helpers import generate_guest_session, load_cookie_session
-from application.authentication import handle_email_signup, handle_email_signin, handle_user_signout, handle_email_verification
+from application.authentication import handle_email_signup, handle_email_signin, handle_user_signout, handle_email_verification, handle_resend_email_verification, handle_send_password_reset
 
 
 
@@ -70,7 +70,16 @@ def guest_required(func):
 # App Custom Context
 @app.context_processor
 def inject_query_params():
-    return dict(query_params=request.query_string.decode('utf-8'))
+    query_params = request.args.to_dict(flat=False)
+    if 'broadcast' in query_params: # Prevent the broadcast query parameter from being continued to passed to the templates
+        query_params.pop('broadcast')
+    if len(query_params) > 0:
+        query_string = ""
+        for key, value in query_params.items():
+            query_string += f'{key}={value[0]}&'
+            print(query_string)
+        return dict(query_params=query_string[:-1])
+    return dict()
 
 # Application Routes
 
@@ -94,11 +103,6 @@ def sign_up_email():
 def sign_in():
     return render_template('sign-in.html')
 
-@app.route('/auth/sign-in/identifier/email', methods=['GET'])
-@guest_required
-def sign_in_email():
-    return render_template('sign-in-email.html')
-
 @app.route('/auth/sign-out', methods=['GET'])
 @login_required
 def sign_out():
@@ -108,6 +112,19 @@ def sign_out():
 @guest_required
 def verify_email():
     return handle_email_verification(request, Config.database_cursor)
+
+@app.route('/auth/email/verification/resend', methods=['GET'])
+@guest_required
+def resend_email_verification():
+    return handle_resend_email_verification(request, g, Config.database_cursor)
+
+@app.route('/auth/password/forgot-password', methods=['GET'])
+@guest_required
+def reset_password():
+    return handle_send_password_reset(request, g, Config.database_cursor)
+
+
+
 
 # Utility Routes
 

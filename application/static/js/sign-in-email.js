@@ -58,7 +58,7 @@ function signInEmail() {
             }
         })
         .catch(error => {
-            createAlert('An error occurred while signing in', 'danger');
+            createAlert('Our internal systems are facing some issues. Please try again later.', 'danger');
             document.getElementById('sign-in-email-button').innerText = 'Sign in';
         });
 }

@@ -47,7 +47,7 @@ function signUpEmail() {
         .then(data => {
             if (data.status === 'success') {
                 setTimeout(() => {
-                    window.location.href = `/auth/sign-in/identifier/email?broadcast=${data.message}`;
+                    window.location.href = `/auth/sign-in?broadcast=${data.message}`;
                 }, 1000);
             } else {
                 createAlert(data.message, 'danger');
@@ -55,7 +55,7 @@ function signUpEmail() {
             }
         })
         .catch(error => {
-            createAlert('An error occurred while creating account', 'danger');
+            createAlert('Our internal systems are facing some issues. Please try again later.', 'danger');
             document.getElementById('sign-up-email-button').innerText = 'Sign up';
         });
 }

@@ -74,13 +74,16 @@ function signOut() {
         .then(data => {
             if (data.status === 'success') {
                 setTimeout(() => {
-                    window.location.href = '/?broadcast=You have been signed out successfully';
+                    // Add a new parameter brodcast to the URL to indicate that the user has signed out
+                    let urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('broadcast', 'You have been signed out successfully');
+                    window.location.href = '/auth/sign-in?' + urlParams.toString();
                 }, 1000);
             } else {
                 createAlert(data.message, 'danger');
             }
         })
         .catch(error => {
-            createAlert('An error occurred while signing out', 'danger');
+            createAlert('Our internal systems are facing some issues. Please try again later.', 'danger');
         });
 }

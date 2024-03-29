@@ -112,7 +112,7 @@ def generate_user_public_id(database_connection):
     :param database_connection: The connection object to the database
     :return: A unique public id
     '''
-    public_id = str(secrets.token_urlsafe(16))
+    public_id = str(secrets.token_urlsafe(16)).replace('-', '').replace('_', '')
     if database_connection['users'].find_one({'user_public_id': public_id}) is not None:
         return generate_user_public_id(database_connection)
     return public_id
@@ -158,14 +158,15 @@ def generate_token(token_type, user_id, database_connection):
     :param database_connection: The connection object to the database
     :return: A unique token
     '''
-    token = str(secrets.token_urlsafe(64))
+    while True:
+        token = str(secrets.token_urlsafe(64))
+        if database_connection['tokens'].find_one({'token': token}) is None:
+            break                                   
     database_connection['tokens'].delete_many({'token_user_id': user_id, 'token_type': token_type})
-    if database_connection['tokens'].find_one({'token': token}) is not None:
-        return generate_token(token_type, user_id, database_connection)
     token_info = {
         'token': token,
         'token_type': token_type,
-        'token_user_id': user_id,
+        'token_user_public_id': user_id,
         'token_created_at': datetime.datetime.now()
     }
     database_connection['tokens'].insert_one(token_info)
@@ -181,6 +182,17 @@ def send_email_verification_email(user_email, user_full_name, token):
     '''
     send_email(user_email, user_full_name, 'Email Verification | ProjectRexa', f"""
                <body><div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px"><p style="font-size:16px">Hello {user_full_name.title()} 👋,</p><p style="font-size:16px">Thank you for signing up! To get started, please verify your email address by clicking the link below:</p><p style="font-size:16px"><a href="https://accounts.om-mishra.com/auth/email/verification/verify?verification_token={token}" style="color:#007bff;text-decoration:none">https://accounts.om-mishra.com/auth/email/verification/verify?verification_token={token}</a></p><p style="font-size:16px">If you have any questions or need assistance, feel free to reach out to our support team at <a href="mailto:support@om-mishra.com" style="color:#007bff;text-decoration:none">support@om-mishra.com</a>.</p><p style="font-size:16px">Best Regards,<br>The Team at ProjectRexa</p></div></body>""")             
+
+def send_password_reset_email(user_email, user_full_name, token):
+    '''
+    Send a password reset email to the user
+
+    :param user_email: The email of the user
+    :param user_full_name: The full name of the user
+    :param token: The token for the password reset
+    '''
+    send_email(user_email, user_full_name, 'Password Reset | ProjectRexa', f"""
+               <body><div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px"><p style="font-size:16px">Hello {user_full_name.title()},</p><p style="font-size:16px">We received a request to reset your password. To reset your password, please click the link below:</p><p style="font-size:16px"><a href="https://accounts.om-mishra.com/auth/password/reset?reset_token={token}" style="color:#007bff;text-decoration:none">https://accounts.om-mishra.com/auth/password/reset?reset_token={token}</a></p><p style="font-size:16px">If you did not request a password reset, please ignore this email. If you have any questions or need assistance, feel free to reach out to our support team at <a href="mailto:support@om-mishra.com" style="color:#007bff;text-decoration:none">support@om-mishra.com</a>.</p><p style="font-size:16px">Best Regards,<br>The Team at ProjectRexa</p></div></body>""")
 
 def send_email(user_email, user_full_name, subject, body):
     '''
@@ -208,4 +220,17 @@ def send_email(user_email, user_full_name, subject, body):
     except Exception as e:
         return False
 
+def verifiy_csrf_token(request, global_context):
+    '''
+    Verify the CSRF token for the user
 
+    :param request: The request object from the view
+    :param global_context: The global context object
+    :return: A boolean value indicating if the CSRF token is valid
+    '''
+    print(request.args)
+    csrf_token = request.args.get('csrf_token')
+    print(csrf_token)
+    if csrf_token is None or csrf_token != global_context.session['session_info']['session_csrf_token']:
+        return False
+    return True
