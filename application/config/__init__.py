@@ -11,7 +11,7 @@ class Config:
 
         self.application_info = {
             'name': 'ProjectRexa Single Sign-On Service',
-            'version': '3.0.1',
+            'version': '3.1.0',
             'description': 'Single Sign-On service for ProjectRexa and its services',
         }
 
