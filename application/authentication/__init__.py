@@ -182,8 +182,8 @@ def handle_send_password_reset(request, global_context, database_connection):
     if user_data['user_account_info']['user_account_status'] == 'deleted':
         return redirect('/auth/sign-in?broadcast=The account associated with the identifier is deleted, please contact the support team'), 302
     
-    # if user_data['user_account_info']['user_password_last_updated_at'] > (datetime.datetime.now() - datetime.timedelta(days=1)):
-    #     return redirect('/auth/sign-in?broadcast=The password has been reseted recently, therefore you cannot reset the password at the moment'), 302
+    if user_data['user_account_info']['user_password_last_updated_at'] > (datetime.datetime.now() - datetime.timedelta(days=1)):
+        return redirect('/auth/sign-in?broadcast=The password has been reseted recently, therefore you cannot reset the password at the moment'), 302
     
     if database_connection['tokens'].find_one({'token_type': 'password_reset', 'token_user_public_id': user_data['user_public_id']}) is not None:
         if database_connection['tokens'].find_one({'token_type': 'password_reset', 'token_user_public_id': user_data['user_public_id']})['token_created_at'] > (datetime.datetime.now() - datetime.timedelta(hours=6)):
@@ -227,12 +227,12 @@ def handle_reset_password(request, global_context, database_connection, redis_co
     if user_data['user_account_info']['user_account_status'] == 'deleted':
         return jsonify({'status': 'error', 'message': 'The account associated with the password reset token is deleted, please contact the support team'}), 400
     
-    # if user_data['user_account_info']['user_password_last_updated_at'] > (datetime.datetime.now() - datetime.timedelta(days=1)):
-    #     return jsonify({'status': 'error', 'message': 'The password has been reseted recently, therefore you cannot reset the password at the moment'}), 400
+    if user_data['user_account_info']['user_password_last_updated_at'] > (datetime.datetime.now() - datetime.timedelta(days=1)):
+        return jsonify({'status': 'error', 'message': 'The password has been reseted recently, therefore you cannot reset the password at the moment'}), 400
     
     database_connection['users'].update_one({'user_public_id': user_data['user_public_id']}, {'$set': {'user_hashed_password': generate_hashed_password(new_password), 'user_account_info.user_password_last_updated_at': datetime.datetime.now()}})
 
-    database_connection['tokens'].delete_one({'token_id': token_data['token']})
+    database_connection['tokens'].delete_one({'token': password_reset_token})
 
     redis_connection.delete(global_context.session['session_id'])
 
