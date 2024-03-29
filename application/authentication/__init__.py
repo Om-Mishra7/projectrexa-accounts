@@ -95,7 +95,7 @@ def handle_user_signout(request, redis_connection, database_connection, global_c
 
     return jsonify({'status': 'success', 'message': 'The account has been logged out successfully'}), 200
 
-def handle_email_verification(request, database_connection):
+def handle_email_verification(request, global_context, database_connection, redis_connection):
         
         email_verification_token = request.args.get('verification_token')
 
@@ -123,7 +123,9 @@ def handle_email_verification(request, database_connection):
 
         database_connection['tokens'].delete_one({'token_id': token_data['token']})
 
-        return redirect('/auth/sign-in?broadcast=Your account has been verified successfully, please sign in'), 302
+        global_context.session = generate_user_session(user_data, request, redis_connection, database_connection)
+
+        return redirect('/?broadcast=The account has been verified successfully, welcome to ProjectRexa'), 302
 
 def handle_resend_email_verification(request, global_context, database_connection):
 

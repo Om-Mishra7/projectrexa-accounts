@@ -111,7 +111,7 @@ def sign_out():
 @app.route('/auth/email/verification/verify', methods=['GET'])
 @guest_required
 def verify_email():
-    return handle_email_verification(request, Config.database_cursor)
+    return handle_email_verification(request, g, Config.database_cursor, Config.redis_connection)
 
 @app.route('/auth/email/verification/resend', methods=['GET'])
 @guest_required
