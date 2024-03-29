@@ -3,4 +3,5 @@ redis
 bcrypt
 resend
 pymongo
+requests
 python-dotenv

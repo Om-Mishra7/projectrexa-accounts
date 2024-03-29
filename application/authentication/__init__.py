@@ -195,3 +195,47 @@ def handle_send_password_reset(request, global_context, database_connection):
     
     return redirect('/auth/sign-in?broadcast=The password reset email has been sent, please check your inbox'), 302
 
+def handle_reset_password(request, global_context, database_connection, redis_connection):
+    
+    try:
+        request_data = request.get_json()
+    except:
+        request_data = None
+
+    if request_data is None:
+        return jsonify({'status': 'error', 'message': 'The request data is invalid'}), 400
+    
+    password_reset_token = request_data.get('passwordResetToken')
+    new_password = request_data.get('newPassword').strip()
+
+    if password_reset_token is None:
+        return jsonify({'status': 'error', 'message': 'The password reset token is invalid, please make sure the link is correct and try again'}), 400
+    
+    token_data = database_connection['tokens'].find_one({'token_type': 'password_reset', 'token': password_reset_token})
+
+    if token_data is None:
+        return jsonify({'status': 'error', 'message': 'The password reset token is invalid, please make sure the link is correct and try again'}), 400
+    
+    user_data = database_connection['users'].find_one({'user_public_id': token_data['token_user_public_id']})
+
+    if user_data is None:
+        return jsonify({'status': 'error', 'message': 'The account associated with the password reset token does not exist, please sign up'}), 400
+    
+    if user_data['user_account_info']['user_account_status'] == 'suspended':
+        return jsonify({'status': 'error', 'message': 'The account associated with the password reset token is suspended, please contact the support team'}), 400
+    
+    if user_data['user_account_info']['user_account_status'] == 'deleted':
+        return jsonify({'status': 'error', 'message': 'The account associated with the password reset token is deleted, please contact the support team'}), 400
+    
+    if user_data['user_account_info']['user_password_last_updated_at'] > (datetime.datetime.now() - datetime.timedelta(days=7)):
+        return jsonify({'status': 'error', 'message': 'The password has been reseted recently, therefore you cannot reset the password at the moment'}), 400
+    
+    database_connection['users'].update_one({'user_public_id': user_data['user_public_id']}, {'$set': {'user_hashed_password': generate_hashed_password(new_password), 'user_account_info.user_password_last_updated_at': datetime.datetime.now()}})
+
+    database_connection['tokens'].delete_one({'token_id': token_data['token']})
+
+    redis_connection.delete(global_context.session['session_id'])
+
+    global_context.session = generate_user_session(user_data, request, redis_connection, database_connection)
+
+    return jsonify({'status': 'success', 'message': 'The password has been reseted successfully'}), 200

@@ -1,7 +1,7 @@
 from application.config import Config
 from flask import Flask, request, jsonify, render_template, redirect, url_for, g
 from application.helpers import generate_guest_session, load_cookie_session
-from application.authentication import handle_email_signup, handle_email_signin, handle_user_signout, handle_email_verification, handle_resend_email_verification, handle_send_password_reset
+from application.authentication import handle_email_signup, handle_email_signin, handle_user_signout, handle_email_verification, handle_resend_email_verification, handle_send_password_reset, handle_reset_password
 
 
 
@@ -126,7 +126,7 @@ def send_password_reset():
 @app.route('/auth/password/reset-password', methods=['GET'])
 @guest_required
 def reset_password():
-    return render_template('reset-password.html')
+    return render_template('reset-password.html', password_reset_token = request.args.get('reset_token'))
 
 
 
@@ -139,13 +139,21 @@ def favicon():
 
 # API Routes
 @app.route('/api/v1/auth/sign-up/email', methods=['POST'])
+@guest_required
 def api_signup():
     return handle_email_signup(request, Config.database_cursor)
 
 @app.route('/api/v1/auth/sign-in/email', methods=['POST'])
+@guest_required
 def api_signup_verification():
     return handle_email_signin(request, Config.database_cursor, Config.redis_connection, g)
 
 @app.route('/api/v1/auth/sign-out', methods=['POST'])
+@login_required
 def api_signout():
     return handle_user_signout(request, Config.redis_connection, Config.database_cursor, g)
+
+@app.route('/api/v1/auth/password/reset-password', methods=['POST'])
+@guest_required
+def api_reset_password():
+    return handle_reset_password(request, g, Config.database_cursor, Config.redis_connection)

@@ -2,10 +2,26 @@ import json
 import bcrypt
 import resend
 import secrets
+import requests
 import datetime
 from application.config import Config
 
 Config = Config()
+
+def resolve_ip_address_to_country(ip_address):
+    '''
+    Resolve the IP address to the country name
+
+    :param ip_address: The IP address of the user
+    :return: The country name of the user
+    '''
+    try:
+        ip_api_response = requests.get(f"https://freeipapi.com/json/{ip_address}", timeout=1)
+        if ip_api_response.status_code == 200:
+            return ip_api_response.json()['countryName']
+        return 'Unknown'
+    except:
+        return 'Unknown'
 
 def generate_guest_session(request, redis_connection):
     '''
@@ -15,6 +31,7 @@ def generate_guest_session(request, redis_connection):
     :param redis_connection: The connection object to the redis server
     :return: A dictionary containing the user information
     '''
+
     session = {
         'session_id': secrets.token_urlsafe(128),
         'session_info': {
@@ -25,7 +42,7 @@ def generate_guest_session(request, redis_connection):
             'session_ip_address': request.remote_addr,
             'session_user_agent': request.headers.get('User-Agent'),
             'session_referer': request.headers.get('Referer'),
-            'session_country': request.headers.get('CF-IPCountry'),
+            'session_country': resolve_ip_address_to_country(request.remote_addr),
         },
         'user_info': None    
     }
@@ -54,7 +71,7 @@ def generate_user_session(user_info, request, redis_connection, database_connect
             'session_ip_address': request.remote_addr,
             'session_user_agent': request.headers.get('User-Agent'),
             'session_referer': request.headers.get('Referer'),
-            'session_country': request.headers.get('CF-IPCountry'),
+            'session_country': resolve_ip_address_to_country(request.remote_addr),
         },
         'user_info': {
             'user_public_id': user_info['user_public_id'],
