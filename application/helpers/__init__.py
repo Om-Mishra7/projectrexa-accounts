@@ -273,8 +273,8 @@ def filter_valid_sessions(user_sessions, redis_connection):
     '''
     valid_sessions = []
     for session in user_sessions:
-        session = json.loads(redis_connection.get(session['session_id']))
-        if session is not None and datetime.datetime.strptime(session['session_info']['session_last_access_time'], '%Y-%m-%d %H:%M:%S') > datetime.datetime.now() - datetime.timedelta(days=180):
+        redis_session = json.loads(redis_connection.get(session['session_id']))
+        if redis_session is not None and datetime.datetime.strptime(redis_session['session_info']['session_last_access_time'], '%Y-%m-%d %H:%M:%S') > datetime.datetime.now() - datetime.timedelta(days=180):
             valid_sessions.append(session)
         else:
             redis_connection.delete(session['session_id'])
